@@ -1,5 +1,15 @@
+use bevy::math::ops::sqrt;
 use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
+
+pub struct GridPlugin;
+impl Plugin for GridPlugin {
+    fn build(&self, app: &mut App){
+        app
+            .insert_resource(Grid::new(4))
+            .add_systems(Startup, draw_grid);
+    }
+}
 
 
 #[derive(Resource)]
@@ -18,7 +28,7 @@ impl Grid {
                 cells.insert(HexCoordinates{q, r, s}, CellState::Empty);
             }
         }
-        
+
         Grid { cells }
     }
 }
@@ -43,4 +53,20 @@ pub fn draw_grid(
     mut materials: ResMut<Assets<ColorMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
     ){
+    for cell in &grid.cells {
+        let coord = cell.0;
+        let color = match cell.1 {
+            CellState::Empty => Color::srgb(1.0, 1.0, 1.0),
+            CellState::Filled(color) => *color
+        };
+
+        let x = coord.q as f32 * sqrt(3.0) + coord.r as f32 * sqrt(3.0) / 2.0;
+        let y = 3.0 * coord.r as f32 / 2.0;
+
+        commands.spawn((
+            Mesh2d(meshes.add(Rectangle::default())),
+            MeshMaterial2d(materials.add(color)),
+            Transform::from_xyz(x * 50.0, y * 50.0, -20.0).with_scale(Vec3::splat(10.0)),
+        ));
+    }
 }

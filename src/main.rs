@@ -1,10 +1,10 @@
-mod grid;
-
 use bevy::prelude::*;
+use crate::grid::GridPlugin;
+mod grid;
 
 fn main() {
     let mut app = App::new();
-    app.add_plugins(DefaultPlugins);
+    app.add_plugins((DefaultPlugins, GridPlugin));
     app.add_systems(Startup, setup);
     app.run();
 }
