@@ -9,11 +9,13 @@ pub struct GridPlugin;
 impl Plugin for GridPlugin {
     fn build(&self, app: &mut App){
         app
-            .insert_resource(Grid::new(4))
+            .insert_resource(Grid::new(3))
             .add_systems(Startup, draw_grid);
     }
 }
 
+const GRID_SIZE: f32 = 500.0;
+const RADIUS_OF_GRID : f32 = 3.0;
 
 #[derive(Resource)]
 pub struct Grid{
@@ -21,6 +23,7 @@ pub struct Grid{
 }
 impl Grid {
     pub fn new(radius: i8) -> Self {
+        // Check if < 1 radius
         let mut cells = HashMap::new();
 
         for q in -radius..=radius {
@@ -56,6 +59,10 @@ pub fn draw_grid(
     mut materials: ResMut<Assets<ColorMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
     ){
+    // https://www.redblobgames.com/grids/hexagons/#basics
+    let hex_height = GRID_SIZE / (RADIUS_OF_GRID * 2.0 - 1.0);
+    let size = hex_height / 2.0;
+
     for cell in &grid.cells {
         let coord = cell.0;
         let color = match cell.1 {
@@ -63,13 +70,13 @@ pub fn draw_grid(
             CellState::Filled(color) => *color
         };
 
-        let x = coord.q as f32 * sqrt(3.0) + coord.r as f32 * sqrt(3.0) / 2.0;
-        let y = 3.0 * coord.r as f32 / 2.0;
-        let hex = hexagon(1.0);
+        let y = size * 3.0 / 2.0 * coord.q as f32;
+        let x = size * (sqrt(3.0) / 2.0 * coord.q as f32 + sqrt(3.0) * coord.r as f32);
+        let hex = hexagon(0.5);
         commands.spawn((
             Mesh2d(meshes.add(hex)),
             MeshMaterial2d(materials.add(color)),
-            Transform::from_xyz(x * 50.0, y * 50.0, -20.0).with_scale(Vec3::splat(10.0)),
+            Transform::from_xyz(x, y, -10.0).with_scale(Vec3::splat(hex_height - 10.0)),
         ));
     }
 }
@@ -82,7 +89,6 @@ fn hexagon(radius: f32) -> Mesh {
     let mut v_pos = vec![[0.0, 0.0, 0.0]];
     for i in 0..6 {
         let angle = i as f32 * PI / 3.0;
-        // Radius of the hexagon is 1, and all the indicies are the same length
         v_pos.push([radius * ops::sin(angle), radius * ops::cos(angle), 0.0]);
     }
     // Sets position attribut
