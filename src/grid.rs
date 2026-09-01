@@ -4,18 +4,20 @@ use bevy::math::ops::sqrt;
 use bevy::mesh::{Indices, PrimitiveTopology};
 use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
+use bevy::ui::Pressed;
 
+const GRID_SIZE: f32 = 500.0;
+const HEXAGONS_FROM_CENTER: f32 = 3.0;
 pub struct GridPlugin;
 impl Plugin for GridPlugin {
     fn build(&self, app: &mut App){
         app
-            .insert_resource(Grid::new(3))
+            .add_plugins(MeshPickingPlugin)
+            .insert_resource(Grid::new(HEXAGONS_FROM_CENTER as i8))
+            .insert_resource(CurrentColor::new(Color::srgb(0.0, 0.0, 0.0)))
             .add_systems(Startup, draw_grid);
     }
 }
-
-const GRID_SIZE: f32 = 500.0;
-const RADIUS_OF_GRID : f32 = 3.0;
 
 #[derive(Resource)]
 pub struct Grid{
@@ -39,6 +41,21 @@ impl Grid {
     }
 }
 
+#[derive(Resource)]
+struct CurrentColor {
+    pub color: Color
+}
+
+impl CurrentColor {
+    pub fn new(color: Color) -> Self {
+        CurrentColor { color }
+    }
+
+    pub fn update(&mut self, color: Color) {
+        self.color = color;
+    }
+}
+
 
 #[derive(Component, Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub struct HexCoordinates {
@@ -52,7 +69,6 @@ pub enum CellState{
     Empty,
     Filled(Color),
 }
-
 pub fn draw_grid(
     mut commands: Commands,
     grid: Res<Grid>,
@@ -60,7 +76,7 @@ pub fn draw_grid(
     mut meshes: ResMut<Assets<Mesh>>,
     ){
     // https://www.redblobgames.com/grids/hexagons/#basics
-    let hex_height = GRID_SIZE / (RADIUS_OF_GRID * 2.0 - 1.0);
+    let hex_height = GRID_SIZE / (HEXAGONS_FROM_CENTER * 2.0 - 1.0);
     let size = hex_height / 2.0;
 
     for cell in &grid.cells {
@@ -72,16 +88,17 @@ pub fn draw_grid(
 
         let y = size * 3.0 / 2.0 * coord.q as f32;
         let x = size * (sqrt(3.0) / 2.0 * coord.q as f32 + sqrt(3.0) * coord.r as f32);
-        let hex = hexagon(0.5);
+        let hex = hexagon_mesh(size - 10.0);
         commands.spawn((
             Mesh2d(meshes.add(hex)),
             MeshMaterial2d(materials.add(color)),
-            Transform::from_xyz(x, y, -10.0).with_scale(Vec3::splat(hex_height - 10.0)),
-        ));
+            Transform::from_xyz(x, y, -10.0),
+            *coord,
+        )).observe(click_hexagon);
     }
 }
 
-fn hexagon(radius: f32) -> Mesh {
+pub fn hexagon_mesh(size: f32) -> Mesh {
     let mut hex = Mesh::new(
         PrimitiveTopology::TriangleList,
         RenderAssetUsages::RENDER_WORLD,
@@ -89,7 +106,7 @@ fn hexagon(radius: f32) -> Mesh {
     let mut v_pos = vec![[0.0, 0.0, 0.0]];
     for i in 0..6 {
         let angle = i as f32 * PI / 3.0;
-        v_pos.push([radius * ops::sin(angle), radius * ops::cos(angle), 0.0]);
+        v_pos.push([size * ops::sin(angle), size * ops::cos(angle), 0.0]);
     }
     // Sets position attribut
     hex.insert_attribute(Mesh::ATTRIBUTE_POSITION, v_pos);
@@ -102,4 +119,31 @@ fn hexagon(radius: f32) -> Mesh {
     // Sets indices
     hex.insert_indices(Indices::U16(indicies));
     hex
+}
+
+fn click_hexagon(
+    pressed: On<Pointer<Pressed>>,
+    mut grid: ResMut<Grid>,
+    current_color: Res<CurrentColor>,
+    hexagons: Query<(&HexCoordinates, &MeshMaterial2d<ColorMaterial>)>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+    println!("Clicked");
+    let Ok((coord, mesh_material)) = hexagons.get(pressed.event_target()) else {
+        return;
+    };
+
+    if let Some(state) = grid.cells.get_mut(coord) {
+        *state = match *state {
+            CellState::Empty => CellState::Filled(current_color.color),
+            CellState::Filled(_) => CellState::Empty,
+        };
+        let new_color = match *state {
+            CellState::Empty => Color::srgb(1.0, 1.0, 1.0),
+            CellState::Filled(c) => c,
+        };
+        if let Some(mut material) = materials.get_mut(&mesh_material.0) {
+            material.color = new_color;
+        }
+    }
 }
