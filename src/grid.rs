@@ -4,7 +4,6 @@ use bevy::math::ops::sqrt;
 use bevy::mesh::{Indices, PrimitiveTopology};
 use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
-use bevy::ui::Pressed;
 
 const GRID_SIZE: f32 = 500.0;
 const HEXAGONS_FROM_CENTER: f32 = 3.0;
@@ -12,10 +11,12 @@ pub struct GridPlugin;
 impl Plugin for GridPlugin {
     fn build(&self, app: &mut App){
         app
-            .add_plugins(MeshPickingPlugin)
+            .add_plugins((MeshPickingPlugin))
             .insert_resource(Grid::new(HEXAGONS_FROM_CENTER as i8))
-            .insert_resource(CurrentColor::new(Color::srgb(0.0, 0.0, 0.0)))
-            .add_systems(Startup, draw_grid);
+            .insert_resource(CurrentColor::new(Color::srgb(1.0, 0.0, 0.0)))
+            .add_systems(Startup, draw_grid)
+            .add_systems(Update, change_color);
+
     }
 }
 
@@ -69,6 +70,9 @@ pub enum CellState{
     Empty,
     Filled(Color),
 }
+#[derive(Event)]
+pub struct ChangedHexagonColorEvent;
+
 pub fn draw_grid(
     mut commands: Commands,
     grid: Res<Grid>,
@@ -101,7 +105,7 @@ pub fn draw_grid(
 pub fn hexagon_mesh(size: f32) -> Mesh {
     let mut hex = Mesh::new(
         PrimitiveTopology::TriangleList,
-        RenderAssetUsages::RENDER_WORLD,
+        RenderAssetUsages::all(),
     );
     let mut v_pos = vec![[0.0, 0.0, 0.0]];
     for i in 0..6 {
@@ -122,28 +126,52 @@ pub fn hexagon_mesh(size: f32) -> Mesh {
 }
 
 fn click_hexagon(
-    pressed: On<Pointer<Pressed>>,
+    pressed: On<Pointer<Press>>,
     mut grid: ResMut<Grid>,
     current_color: Res<CurrentColor>,
     hexagons: Query<(&HexCoordinates, &MeshMaterial2d<ColorMaterial>)>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    println!("Clicked");
+    if pressed.button != PointerButton::Primary {
+        return;
+    }
+    // Checks if the query is good and assigns values from query
     let Ok((coord, mesh_material)) = hexagons.get(pressed.event_target()) else {
         return;
     };
 
-    if let Some(state) = grid.cells.get_mut(coord) {
-        *state = match *state {
+    // Unpacks the cell_state from the hashmap if coor exists in the hashmap
+    if let Some(cell_state) = grid.cells.get_mut(coord) {
+        *cell_state = match cell_state { // Matches the current state to change color
             CellState::Empty => CellState::Filled(current_color.color),
-            CellState::Filled(_) => CellState::Empty,
+            CellState::Filled(color) if *color == current_color.color => CellState::Empty,
+            CellState::Filled(_) => CellState::Filled(current_color.color),
         };
-        let new_color = match *state {
+
+        // Finds the new color that was assigned to the cell_state
+        let new_color = match *cell_state {
             CellState::Empty => Color::srgb(1.0, 1.0, 1.0),
-            CellState::Filled(c) => c,
-        };
+            CellState::Filled(color) => color,
+        }; // Recolors the hexagon
         if let Some(mut material) = materials.get_mut(&mesh_material.0) {
             material.color = new_color;
         }
+    }
+}
+
+fn change_color(
+    buttons: Res<ButtonInput<MouseButton>>,
+    mut current_color: ResMut<CurrentColor>,
+) {
+    if buttons.just_pressed(MouseButton::Right) {
+        let new_color = if current_color.color == Color::srgb(1.0, 0.0, 0.0) {
+            Color::srgb(0.0, 1.0, 1.0)
+        } else if current_color.color == Color::srgb(0.0, 1.0, 1.0) {
+            Color::srgb(0.0, 1.0, 0.0)
+        } else {
+            Color::srgb(1.0, 0.0, 0.0)
+        };
+
+        current_color.update(new_color);
     }
 }
