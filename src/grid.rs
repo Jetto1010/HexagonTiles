@@ -4,9 +4,14 @@ use bevy::math::ops::sqrt;
 use bevy::mesh::{Indices, PrimitiveTopology};
 use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
+use rand::RngExt;
+use crate::color_list::ColorList;
+use strum::{EnumCount};
+
 
 const GRID_SIZE: f32 = 500.0;
 const HEXAGONS_FROM_CENTER: f32 = 3.0;
+
 pub struct GridPlugin;
 impl Plugin for GridPlugin {
     fn build(&self, app: &mut App){
@@ -14,8 +19,8 @@ impl Plugin for GridPlugin {
             .add_plugins((MeshPickingPlugin))
             .insert_resource(Grid::new(HEXAGONS_FROM_CENTER as i8))
             .insert_resource(CurrentColor::new(Color::srgb(1.0, 0.0, 0.0)))
-            .add_systems(Startup, draw_grid)
-            .add_systems(Update, change_color);
+            .add_systems(Startup, (draw_grid, draw_color_indicators))
+            .add_systems(Update, change_active_color);
 
     }
 }
@@ -23,6 +28,7 @@ impl Plugin for GridPlugin {
 #[derive(Resource)]
 pub struct Grid{
     pub cells: HashMap<HexCoordinates, CellState>,
+    pub color_index: Vec<usize>,
 }
 impl Grid {
     pub fn new(radius: i8) -> Self {
@@ -38,7 +44,16 @@ impl Grid {
             }
         }
 
-        Grid { cells }
+        let mut color_index = Vec::new();
+        for _ in 0..3 {
+            let mut num = rand::rng().random_range(0..ColorList::COUNT - 1);
+            while color_index.contains(&num) {
+                num = rand::rng().random_range(0..ColorList::COUNT - 1);
+            }
+            color_index.push(num)
+        }
+
+        Grid { cells, color_index }
     }
 }
 
@@ -47,7 +62,7 @@ struct CurrentColor {
     pub color: Color
 }
 
-impl CurrentColor {
+    impl CurrentColor {
     pub fn new(color: Color) -> Self {
         CurrentColor { color }
     }
@@ -70,10 +85,10 @@ pub enum CellState{
     Empty,
     Filled(Color),
 }
-#[derive(Event)]
-pub struct ChangedHexagonColorEvent;
+// #[derive(Event)]
+// pub struct ChangedHexagonColorEvent;
 
-pub fn draw_grid(
+fn draw_grid(
     mut commands: Commands,
     grid: Res<Grid>,
     mut materials: ResMut<Assets<ColorMaterial>>,
@@ -87,7 +102,7 @@ pub fn draw_grid(
         let coord = cell.0;
         let color = match cell.1 {
             CellState::Empty => Color::srgb(1.0, 1.0, 1.0),
-            CellState::Filled(color) => *color
+            CellState::Filled(color) => *color // if drawing an already filled grid in the future
         };
 
         let y = size * 3.0 / 2.0 * coord.q as f32;
@@ -102,7 +117,7 @@ pub fn draw_grid(
     }
 }
 
-pub fn hexagon_mesh(size: f32) -> Mesh {
+fn hexagon_mesh(size: f32) -> Mesh {
     let mut hex = Mesh::new(
         PrimitiveTopology::TriangleList,
         RenderAssetUsages::all(),
@@ -140,12 +155,11 @@ fn click_hexagon(
         return;
     };
 
-    // Unpacks the cell_state from the hashmap if coor exists in the hashmap
+    // Unpacks the cell_state from the hashmap if the coord exists in the hashmap
     if let Some(cell_state) = grid.cells.get_mut(coord) {
         *cell_state = match cell_state { // Matches the current state to change color
-            CellState::Empty => CellState::Filled(current_color.color),
-            CellState::Filled(color) if *color == current_color.color => CellState::Empty,
-            CellState::Filled(_) => CellState::Filled(current_color.color),
+            CellState::Filled(color) if *color == current_color.color => CellState::Empty, // Matches to the
+            _ => CellState::Filled(current_color.color),
         };
 
         // Finds the new color that was assigned to the cell_state
@@ -159,7 +173,7 @@ fn click_hexagon(
     }
 }
 
-fn change_color(
+fn change_active_color(
     buttons: Res<ButtonInput<MouseButton>>,
     mut current_color: ResMut<CurrentColor>,
 ) {
@@ -173,5 +187,36 @@ fn change_color(
         };
 
         current_color.update(new_color);
+    }
+}
+
+fn draw_color_indicators(
+    mut commands: Commands,
+    grid: Res<Grid>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    current_color: ResMut<CurrentColor>,
+    windows: Query<&mut Window>,
+) {
+    let hex_height = GRID_SIZE / (HEXAGONS_FROM_CENTER * 2.0 - 1.0);
+    let size = hex_height / 2.0 - 10.0;
+    for i in 0..4 {
+        let hex = hexagon_mesh(size);
+        let y = windows.single().unwrap().resolution.height() / 2.0 - size * 2.0;;
+        if i != 3 { // Takes one of three colors of the grid
+            let x = windows.single().unwrap().resolution.width() / 2.0 - size * 2.0 * (i + 1) as f32;
+            commands.spawn((
+                Mesh2d(meshes.add(hex)),
+                MeshMaterial2d(materials.add(ColorList::color_index(grid.color_index[i]))),
+                Transform::from_xyz(x, y, -10.0),
+            ));
+        } else {  // This is used to indicate which color is selected
+            let x = (windows.single().unwrap().resolution.width() / 2.0 - size * 2.0) * -1.0;
+            commands.spawn((
+                Mesh2d(meshes.add(hex)),
+                MeshMaterial2d(materials.add(current_color.color)),
+                Transform::from_xyz(x, y, -10.0),
+            ));
+        }
     }
 }
