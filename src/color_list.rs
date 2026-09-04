@@ -1,3 +1,4 @@
+use bevy::prelude::Color;
 use strum_macros::{EnumCount, EnumIter};
 
 
@@ -12,25 +13,25 @@ pub enum ColorList {
 }
 
 impl ColorList {
-    pub fn color(&self) -> (f32, f32, f32) {
+    pub fn color(&self) -> Color {
         match self {
-            ColorList::RED => (1.0, 0.0, 0.0),
-            ColorList::YELLOW => (1.0, 1.0, 0.0),
-            ColorList::GREEN => (0.0, 0.0, 1.0),
-            ColorList::BLUE => (0.0, 0.0, 1.0),
-            ColorList::PURPLE => (1.0, 0.0, 1.0),
-            ColorList::WHITE => (1.0, 1.0, 1.0),
+            ColorList::RED => Color::srgb(1.0, 0.0, 0.0),
+            ColorList::YELLOW => Color::srgb(1.0, 1.0, 0.0),
+            ColorList::GREEN => Color::srgb(0.0, 0.0, 1.0),
+            ColorList::BLUE => Color::srgb(0.0, 0.0, 1.0),
+            ColorList::PURPLE => Color::srgb(1.0, 0.0, 1.0),
+            ColorList::WHITE => Color::srgb(1.0, 1.0, 1.0),
         }
     }
 
-    pub fn color_index(index: usize) -> (f32, f32, f32) {
+    pub fn color_index(index: usize) -> Color {
         match index {
-            0 => (1.0, 0.0, 0.0),
-            1 => (1.0, 1.0, 0.0),
-            2 => (0.0, 0.0, 1.0),
-            3 => (0.0, 0.0, 1.0),
-            4 => (1.0, 0.0, 1.0),
-            _ => (1.0, 1.0, 1.0),
+            0 => Color::srgb(1.0, 0.0, 0.0),
+            1 => Color::srgb(1.0, 1.0, 0.0),
+            2 => Color::srgb(0.0, 0.0, 1.0),
+            3 => Color::srgb(0.0, 0.0, 1.0),
+            4 => Color::srgb(1.0, 0.0, 1.0),
+            _ => Color::srgb(1.0, 1.0, 1.0),
         }
     }
 }
