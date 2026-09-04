@@ -16,12 +16,12 @@ pub struct GridPlugin;
 impl Plugin for GridPlugin {
     fn build(&self, app: &mut App){
         app
-            .add_plugins((MeshPickingPlugin))
+            .add_plugins(MeshPickingPlugin)
             .insert_resource(Grid::new(HEXAGONS_FROM_CENTER as i8))
             .insert_resource(CurrentColor::new(Color::srgb(1.0, 1.0, 1.0)))
             .add_systems(Startup, (draw_grid, draw_color_indicators))
-            .add_systems(Update, change_active_color);
-
+            .add_systems(Update, change_active_color)
+            .add_observer(change_current_color);
     }
 }
 
@@ -87,8 +87,6 @@ pub enum CellState{
     Empty,
     Filled(Color),
 }
-// #[derive(Event)]
-// pub struct ChangedHexagonColorEvent;
 
 fn draw_grid(
     mut commands: Commands,
@@ -217,35 +215,25 @@ fn draw_color_indicators(
 }
 
 fn change_active_color(
+    mut commands: Commands,
     buttons: Res<ButtonInput<MouseButton>>,
-    mut current_color: ResMut<CurrentColor>,
+    current_color: ResMut<CurrentColor>,
     grid: Res<Grid>,
-    color_indicator: Query<(&ColorIndicator, &MeshMaterial2d<ColorMaterial>)>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     if buttons.just_pressed(MouseButton::Right) {
-        let Ok((_indicator, mesh_material)) = color_indicator.single() else {
-            return;
-        };
-
         let mut new_color = grid.colors[0];
         if current_color.color != Color::srgb(1.0, 1.0, 1.0) {
             new_color = grid.colors[(grid.colors.iter().position(|c| c == &current_color.color).unwrap() + 1).rem_euclid(3)]
         };
 
-        if let Some(mut material) = materials.get_mut(&mesh_material.0) {
-            current_color.update(new_color);
-            material.color = new_color;
-        }
+        commands.trigger(ChangedActiveColorEvent {color: new_color})
     }
 }
 
 fn select_color(
     pressed: On<Pointer<Press>>,
+    mut commands: Commands,
     hexagon: Query<&ColorSelector>,
-    mut current_color: ResMut<CurrentColor>,
-    color_indicator: Query<(&ColorIndicator, &MeshMaterial2d<ColorMaterial>)>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     if pressed.button != PointerButton::Primary {
         return;
@@ -253,12 +241,26 @@ fn select_color(
     let Ok(selector) = hexagon.get(pressed.event_target()) else {
         return;
     };
+    commands.trigger(ChangedActiveColorEvent {color: selector.color})
+}
 
+#[derive(Event)]
+pub struct ChangedActiveColorEvent {
+    color: Color,
+}
+
+fn change_current_color(
+    change_color_event: On<ChangedActiveColorEvent>,
+    mut current_color: ResMut<CurrentColor>,
+    color_indicator: Query<(&ColorIndicator, &MeshMaterial2d<ColorMaterial>)>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
     let Ok((_indicator, mesh_material)) = color_indicator.single() else {
         return;
     };
+    let new_color = change_color_event.color;
     if let Some(mut material) = materials.get_mut(&mesh_material.0) {
-        current_color.update(selector.color);
-        material.color = selector.color;
+        current_color.update(new_color);
+        material.color = new_color;
     }
 }
