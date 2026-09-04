@@ -28,7 +28,7 @@ impl ColorList {
         match index {
             0 => Color::srgb(1.0, 0.0, 0.0),
             1 => Color::srgb(1.0, 1.0, 0.0),
-            2 => Color::srgb(0.0, 0.0, 1.0),
+            2 => Color::srgb(0.0, 1.0, 0.0),
             3 => Color::srgb(0.0, 0.0, 1.0),
             4 => Color::srgb(1.0, 0.0, 1.0),
             _ => Color::srgb(1.0, 1.0, 1.0),
