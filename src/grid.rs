@@ -90,13 +90,13 @@ fn draw_grid(
             CellState::Filled(color) => *color // if drawing an already filled grid in the future
         };
 
-        let y = size * 3.0 / 2.0 * coord.q as f32;
-        let x = size * (sqrt(3.0) / 2.0 * coord.q as f32 + sqrt(3.0) * coord.r as f32);
+        let x = size * 3.0 / 2.0 * coord.q as f32;
+        let y = size * (sqrt(3.0) / 2.0 * coord.q as f32 + sqrt(3.0) * coord.r as f32);
         let hex = hexagon_mesh(size - 10.0);
         commands.spawn((
             Mesh2d(meshes.add(hex)),
             MeshMaterial2d(materials.add(color)),
-            Transform::from_xyz(x, y, -10.0),
+            Transform::from_xyz(x, y, -10.0).with_rotation(Quat::from_rotation_z(PI / 2.0)),
             *coord,
         )).observe(click_hexagon);
     }
