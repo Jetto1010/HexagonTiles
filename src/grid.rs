@@ -12,6 +12,7 @@ use strum::{EnumCount};
 
 pub const GRID_SIZE: f32 = 500.0;
 pub const HEXAGONS_FROM_CENTER: f32 = 3.0;
+pub const HEXAGON_SIZE: f32 = GRID_SIZE / (HEXAGONS_FROM_CENTER * 2.0 - 1.0);
 
 pub struct GridPlugin;
 impl Plugin for GridPlugin {
@@ -19,7 +20,7 @@ impl Plugin for GridPlugin {
         app
             .add_plugins((ColorPlugin, MeshPickingPlugin))
             .insert_resource(Grid::new(HEXAGONS_FROM_CENTER as i8))
-            .add_systems(Startup, draw_grid);
+            .add_systems(Startup, (draw_grid, draw_grid_background));
     }
 }
 
@@ -80,8 +81,7 @@ fn draw_grid(
     mut meshes: ResMut<Assets<Mesh>>,
     ){
     // https://www.redblobgames.com/grids/hexagons/#basics
-    let hex_height = GRID_SIZE / (HEXAGONS_FROM_CENTER * 2.0 - 1.0);
-    let size = hex_height / 2.0;
+    let size = HEXAGON_SIZE / 2.0;
 
     for cell in &grid.cells {
         let coord = cell.0;
@@ -101,6 +101,20 @@ fn draw_grid(
         )).observe(click_hexagon);
     }
 }
+
+fn draw_grid_background(
+    mut commands: Commands,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+) {
+    let background_hex = hexagon_mesh(GRID_SIZE / 2.0 + HEXAGON_SIZE / 2.0);
+    commands.spawn((
+        Mesh2d(meshes.add(background_hex)),
+        MeshMaterial2d(materials.add(Color::srgba(0.678, 0.847, 0.902, 0.5))),
+        Transform::from_translation(Vec3::Z - 13.0)
+        ));
+}
+
 pub fn hexagon_mesh(size: f32) -> Mesh {
     let mut hex = Mesh::new(
         PrimitiveTopology::TriangleList,

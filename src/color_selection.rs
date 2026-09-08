@@ -50,8 +50,7 @@ fn draw_color_indicators(
     current_color: ResMut<CurrentColor>,
     windows: Query<&mut Window>,
 ) {
-    let hex_height = crate::grid::GRID_SIZE / (crate::grid::HEXAGONS_FROM_CENTER * 2.0 - 1.0);
-    let size = hex_height / 2.0 - 10.0;
+    let size = crate::grid::HEXAGON_SIZE / 2.0;
     for i in 0..4 {
         let hex = crate::grid::hexagon_mesh(size);
         let y = windows.single().unwrap().resolution.height() / 2.0 - size * 2.0;
