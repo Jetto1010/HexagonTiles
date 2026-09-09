@@ -10,9 +10,9 @@ use crate::color_selection::{ColorPlugin, CurrentColor};
 use strum::{EnumCount};
 
 
-pub const GRID_SIZE: f32 = 500.0;
+pub const GRID_SIZE: f32 = 250.0; // Pointy-top
 pub const HEXAGONS_FROM_CENTER: f32 = 3.0;
-pub const HEXAGON_SIZE: f32 = GRID_SIZE / (HEXAGONS_FROM_CENTER * 2.0 - 1.0);
+pub const HEXAGON_SIZE: f32 = GRID_SIZE / HEXAGONS_FROM_CENTER; // Flat-top
 
 pub struct GridPlugin;
 impl Plugin for GridPlugin {
@@ -92,7 +92,7 @@ fn draw_grid(
 
         let x = size * 3.0 / 2.0 * coord.q as f32;
         let y = size * (sqrt(3.0) / 2.0 * coord.q as f32 + sqrt(3.0) * coord.r as f32);
-        let hex = hexagon_mesh(size - 10.0);
+        let hex = hexagon_mesh(size - 5.0);
         commands.spawn((
             Mesh2d(meshes.add(hex)),
             MeshMaterial2d(materials.add(color)),
@@ -107,11 +107,11 @@ fn draw_grid_background(
     mut materials: ResMut<Assets<ColorMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
-    let background_hex = hexagon_mesh(GRID_SIZE / 2.0 + HEXAGON_SIZE / 2.0);
+    let background_hex = hexagon_mesh(GRID_SIZE + 10.0);
     commands.spawn((
         Mesh2d(meshes.add(background_hex)),
         MeshMaterial2d(materials.add(Color::srgba(0.678, 0.847, 0.902, 0.5))),
-        Transform::from_translation(Vec3::Z - 13.0)
+        Transform::from_xyz(0.0, 0.0, -13.0)
         ));
 }
 
