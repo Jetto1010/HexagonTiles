@@ -3,6 +3,7 @@ use crate::grid::GridPlugin;
 mod grid;
 mod color_list;
 mod color_selection;
+mod numbers;
 
 fn main() {
     let mut app = App::new();

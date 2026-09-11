@@ -7,19 +7,20 @@ use bevy::prelude::*;
 use rand::RngExt;
 use crate::color_list::ColorList;
 use crate::color_selection::{ColorPlugin, CurrentColor};
+use crate::numbers::{NumberPlugin, NumberIndicator};
 use strum::{EnumCount};
 
 
-pub const GRID_SIZE: f32 = 250.0; // Pointy-top
+pub const GRID_SIZE: f32 = 250.0; // Pointy-top -> size from center to top
 pub const HEXAGONS_FROM_CENTER: f32 = 3.0;
-pub const HEXAGON_SIZE: f32 = GRID_SIZE / HEXAGONS_FROM_CENTER; // Flat-top
+pub const HEXAGON_SIZE: f32 = GRID_SIZE / HEXAGONS_FROM_CENTER; // Flat-top -> size from center to right edge
 
 pub struct GridPlugin;
 impl Plugin for GridPlugin {
     fn build(&self, app: &mut App){
         app
-            .add_plugins((ColorPlugin, MeshPickingPlugin))
-            .insert_resource(Grid::new(HEXAGONS_FROM_CENTER as i8))
+            .add_plugins((ColorPlugin, MeshPickingPlugin, NumberPlugin))
+            .insert_resource(Grid::new())
             .add_systems(Startup, (draw_grid, draw_grid_background));
     }
 }
@@ -28,18 +29,23 @@ impl Plugin for GridPlugin {
 pub struct Grid{
     pub cells: HashMap<HexCoordinates, CellState>,
     pub colors: Vec<Color>,
+    pub number_indicators: Vec<NumberIndicator>
 }
 impl Grid {
-    pub fn new(radius: i8) -> Self {
-        // Check if < 1 radius
+    pub fn new() -> Self {
+        let mut number_coords = Vec::new();
+        let radius = HEXAGONS_FROM_CENTER as i8 + 1; // +1 for indicators
         let mut cells = HashMap::new();
 
         for q in -radius..=radius {
             let r_min = (-radius).max(-q - radius);
             let r_max = radius.min(-q + radius);
             for r in r_min..=r_max {
-                let s = -q - r;
-                cells.insert(HexCoordinates{q, r, s}, CellState::Empty);
+                if q.abs() == 4 || r.abs() == 4 {
+                    number_coords.push((q, r));
+                } else {
+                    cells.insert(HexCoordinates { q, r }, CellState::Empty);
+                }
             }
         }
 
@@ -54,7 +60,27 @@ impl Grid {
             colors.push(ColorList::color_index(num));
         }
 
-        Grid { cells, colors }
+        let mut number_indicators = Vec::new();
+        for coord in number_coords {
+            let q = coord.0;
+            let r = coord.1;
+            let s = -q - r;
+            if (q == -4 && r == 0) || (q == 0 && r == 4) || (q == 4 && r == -4) {
+                continue;
+            }
+            if r <= 0 && s >= 0 {
+                let new_indicator = NumberIndicator::new(vec![1], coord, colors[0]);
+                number_indicators.push(new_indicator)
+            } else if r >= 0 && q <= 0 {
+                let new_indicator = NumberIndicator::new(vec![1], coord, colors[1]);
+                number_indicators.push(new_indicator)
+            } else if q <= 0 && s >= 0 {
+                let new_indicator = NumberIndicator::new(vec![1], coord, colors[2]);
+                number_indicators.push(new_indicator)
+            }
+        }
+
+        Grid { cells, colors, number_indicators }
     }
 }
 
@@ -64,7 +90,6 @@ impl Grid {
 #[derive(Component, Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub struct HexCoordinates {
     pub q: i8,
-    pub s: i8,
     pub r: i8,
 }
 
