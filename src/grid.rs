@@ -66,17 +66,17 @@ impl Grid {
             let q = coord.0;
             let r = coord.1;
             let s = -q - r;
-
-            if r <= 0 && s >= 0 {
-                let new_indicator = NumberIndicator::new(vec![q, s, r], coord, colors[0]);
-                number_indicators.push(new_indicator)
-            } else if r >= 0 && q <= 0 {
-                let new_indicator = NumberIndicator::new(vec![q, s, r], coord, colors[1]);
-                number_indicators.push(new_indicator)
-            } else {
-                let new_indicator = NumberIndicator::new(vec![q, s, r], coord, colors[2]);
-                number_indicators.push(new_indicator)
+            if (q == -4 && r==0) || (q == 4 && r == -4) || (q == 0 && r == 4) {
+                continue;
             }
+            let new_indicator = if r <= 0 && s >= 0 {
+                NumberIndicator::new(vec![q, s, r], coord, colors[0])
+            } else if r >= 0 && q <= 0 {
+                NumberIndicator::new(vec![q, s, r], coord, colors[1])
+            } else {
+                NumberIndicator::new(vec![q, s, r], coord, colors[2])
+            };
+            number_indicators.push(new_indicator)
         }
 
         Grid { cells, colors, number_indicators }
@@ -115,7 +115,7 @@ fn draw_grid(
         };
 
         let x = size * 3.0 / 2.0 * coord.q as f32;
-        let y = size * (sqrt(3.0) / 2.0 * coord.q as f32 + sqrt(3.0) * coord.r as f32);
+        let y = -size * (sqrt(3.0) / 2.0 * coord.q as f32 + sqrt(3.0) * coord.r as f32);
         let hex = hexagon_mesh(size - 5.0);
         commands.spawn((
             Mesh2d(meshes.add(hex)),

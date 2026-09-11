@@ -1,6 +1,6 @@
+use std::f32::consts::PI;
 use bevy::math::ops::sqrt;
 use bevy::prelude::*;
-use bevy::text::TextBounds;
 use crate::grid::{Grid, HEXAGON_SIZE};
 
 pub struct NumberPlugin;
@@ -45,24 +45,31 @@ fn draw_indicators(
         let mut string = String::new();
         for i in 0..indicator.numbers.len() {
             if i < indicator.numbers.len() - 1 {
-                string.push_str(&format!("{}\n", &indicator.numbers[i]));
+                string.push_str(&format!("{}\n", &indicator.numbers[i].abs()));
             } else {
-                string.push_str(&format!("{}", &indicator.numbers[i]));
+                string.push_str(&format!("{}", &indicator.numbers[i].abs()));
             }
         }
-        let indicator_size = Vec2::new(5.0, 5.0);
+        let indicator_size = Vec2::new(40.0, 60.0);
         let size = HEXAGON_SIZE / 2.0;
         let x = size * 3.0 / 2.0 * indicator.coords.0 as f32;
-        let y = size * (sqrt(3.0) / 2.0 * indicator.coords.0 as f32 + sqrt(3.0) * indicator.coords.1 as f32);
+        let y = -size * (sqrt(3.0) / 2.0 * indicator.coords.0 as f32 + sqrt(3.0) * indicator.coords.1 as f32);
+        let s = -indicator.coords.0 - indicator.coords.1;
+        let rotate_in_radians = if indicator.coords.1  <= 0 && s >= 0 {
+            0.0
+        } else if indicator.coords.1 >= 0 && indicator.coords.0 <= 0 {
+            - PI / 3.0
+        } else {
+            PI / 3.0
+        };
     commands.spawn((
         Sprite::from_color(indicator.color, indicator_size),
-        Transform::from_xyz(x, y, -11.0),
-        children![
+        Transform::from_xyz(x, y, -11.0).with_rotation(Quat::from_rotation_z(rotate_in_radians)),
+        children![(
             Text2d::new(&string),
             TextLayout::new(Justify::Center, LineBreak::AnyCharacter),
-            TextBounds::from(indicator_size),
-            Transform::from_translation(Vec3::Z)
-        ]
+            Transform::from_translation(Vec3::Z).with_rotation(Quat::from_rotation_z(-rotate_in_radians)),
+        )]
         ));
     }
 }
