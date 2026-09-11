@@ -15,14 +15,14 @@ impl Plugin for NumberPlugin {
 
 #[derive(Component)]
 pub struct NumberIndicator {
-    numbers: Vec<u8>,
+    numbers: Vec<i8>,
     coords: (i8, i8), // In qrs coords
     color: Color,
     border: IndicatorBorder
 }
 
 impl NumberIndicator {
-    pub fn new(numbers: Vec<u8>, coords: (i8, i8), color: Color) -> Self {
+    pub fn new(numbers: Vec<i8>, coords: (i8, i8), color: Color) -> Self {
         NumberIndicator {
             numbers, coords, color, border: IndicatorBorder::Empty
         }
@@ -49,21 +49,20 @@ fn draw_indicators(
             } else {
                 string.push_str(&format!("{}", &indicator.numbers[i]));
             }
-            let indicator_size = Vec2::new(5.0, 5.0);
-            let size = HEXAGON_SIZE / 2.0;
-            let x = size * 3.0 / 2.0 * indicator.coords.0 as f32;
-            let y = size * (sqrt(3.0) / 2.0 * indicator.coords.0 as f32 + sqrt(3.0) * indicator.coords.1 as f32);
-        commands.spawn((
-            Sprite::from_color(indicator.color, indicator_size),
-            Transform::from_xyz(x, y, -11.0),
-            children![
-                Text2d::new(&string),
-                TextLayout::new(Justify::Center, LineBreak::AnyCharacter),
-                TextBounds::from(indicator_size),
-                Transform::from_translation(Vec3::Z)
-            ]
-            ));
         }
+        let indicator_size = Vec2::new(5.0, 5.0);
+        let size = HEXAGON_SIZE / 2.0;
+        let x = size * 3.0 / 2.0 * indicator.coords.0 as f32;
+        let y = size * (sqrt(3.0) / 2.0 * indicator.coords.0 as f32 + sqrt(3.0) * indicator.coords.1 as f32);
+    commands.spawn((
+        Sprite::from_color(indicator.color, indicator_size),
+        Transform::from_xyz(x, y, -11.0),
+        children![
+            Text2d::new(&string),
+            TextLayout::new(Justify::Center, LineBreak::AnyCharacter),
+            TextBounds::from(indicator_size),
+            Transform::from_translation(Vec3::Z)
+        ]
+        ));
     }
-
 }

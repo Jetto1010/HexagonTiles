@@ -33,15 +33,16 @@ pub struct Grid{
 }
 impl Grid {
     pub fn new() -> Self {
-        let mut number_coords = Vec::new();
         let radius = HEXAGONS_FROM_CENTER as i8 + 1; // +1 for indicators
         let mut cells = HashMap::new();
+        let mut number_coords = Vec::new();
 
         for q in -radius..=radius {
             let r_min = (-radius).max(-q - radius);
             let r_max = radius.min(-q + radius);
             for r in r_min..=r_max {
-                if q.abs() == 4 || r.abs() == 4 {
+                let s = -q - r;
+                if q.abs() == 4 || r.abs() == 4 || s.abs() == 4 {
                     number_coords.push((q, r));
                 } else {
                     cells.insert(HexCoordinates { q, r }, CellState::Empty);
@@ -65,17 +66,15 @@ impl Grid {
             let q = coord.0;
             let r = coord.1;
             let s = -q - r;
-            if (q == -4 && r == 0) || (q == 0 && r == 4) || (q == 4 && r == -4) {
-                continue;
-            }
+
             if r <= 0 && s >= 0 {
-                let new_indicator = NumberIndicator::new(vec![1], coord, colors[0]);
+                let new_indicator = NumberIndicator::new(vec![q, s, r], coord, colors[0]);
                 number_indicators.push(new_indicator)
             } else if r >= 0 && q <= 0 {
-                let new_indicator = NumberIndicator::new(vec![1], coord, colors[1]);
+                let new_indicator = NumberIndicator::new(vec![q, s, r], coord, colors[1]);
                 number_indicators.push(new_indicator)
-            } else if q <= 0 && s >= 0 {
-                let new_indicator = NumberIndicator::new(vec![1], coord, colors[2]);
+            } else {
+                let new_indicator = NumberIndicator::new(vec![q, s, r], coord, colors[2]);
                 number_indicators.push(new_indicator)
             }
         }
