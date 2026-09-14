@@ -4,6 +4,7 @@ mod grid;
 mod color_list;
 mod color_selection;
 mod numbers;
+mod shapes;
 
 fn main() {
     let mut app = App::new();

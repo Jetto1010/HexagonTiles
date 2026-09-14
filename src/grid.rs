@@ -9,7 +9,7 @@ use crate::color_list::ColorList;
 use crate::color_selection::{ColorPlugin, CurrentColor};
 use crate::numbers::{NumberPlugin, NumberIndicator};
 use strum::{EnumCount};
-
+use crate::shapes::{ShapesPlugin, ShapeList};
 
 pub const GRID_SIZE: f32 = 250.0; // Pointy-top -> size from center to top
 pub const HEXAGONS_FROM_CENTER: f32 = 3.0;
@@ -19,7 +19,7 @@ pub struct GridPlugin;
 impl Plugin for GridPlugin {
     fn build(&self, app: &mut App){
         app
-            .add_plugins((ColorPlugin, MeshPickingPlugin, NumberPlugin))
+            .add_plugins((ColorPlugin, MeshPickingPlugin, NumberPlugin, ShapesPlugin))
             .insert_resource(Grid::new())
             .add_systems(Startup, (draw_grid, draw_grid_background));
     }
@@ -29,7 +29,8 @@ impl Plugin for GridPlugin {
 pub struct Grid{
     pub cells: HashMap<HexCoordinates, CellState>,
     pub colors: Vec<Color>,
-    pub number_indicators: Vec<NumberIndicator>
+    pub number_indicators: Vec<NumberIndicator>,
+    pub shapes: Vec<Vec<HexCoordinates>>
 }
 impl Grid {
     pub fn new() -> Self {
@@ -45,7 +46,7 @@ impl Grid {
                 if q.abs() == 4 || r.abs() == 4 || s.abs() == 4 {
                     number_coords.push((q, r));
                 } else {
-                    cells.insert(HexCoordinates { q, r }, CellState::Empty);
+                    cells.insert(HexCoordinates { q, r, s }, CellState::Empty);
                 }
             }
         }
@@ -70,16 +71,28 @@ impl Grid {
                 continue;
             }
             let new_indicator = if r <= 0 && s >= 0 {
-                NumberIndicator::new(vec![q, s, r], coord, colors[0])
+                NumberIndicator::new(vec![1, 2, 3, 1], coord, colors[0])
             } else if r >= 0 && q <= 0 {
-                NumberIndicator::new(vec![q, s, r], coord, colors[1])
+                NumberIndicator::new(vec![1, 2, 3, 1], coord, colors[1])
             } else {
-                NumberIndicator::new(vec![q, s, r], coord, colors[2])
+                NumberIndicator::new(vec![1, 2, 3], coord, colors[2])
             };
             number_indicators.push(new_indicator)
         }
 
-        Grid { cells, colors, number_indicators }
+        let mut shape_index = Vec::new();
+        let mut shapes = Vec::new();
+        for _ in 0..3 {
+            let mut num = rand::rng().random_range(0..ShapeList::COUNT);
+            while shape_index.contains(&num) {
+                num = rand::rng().random_range(0..ShapeList::COUNT);
+            }
+            shape_index.push(num);
+            shapes.push(ShapeList::shape_index(num));
+        }
+
+
+        Grid { cells, colors, number_indicators, shapes }
     }
 }
 
@@ -90,6 +103,7 @@ impl Grid {
 pub struct HexCoordinates {
     pub q: i8,
     pub r: i8,
+    pub s: i8,
 }
 
 #[derive(Component, Clone, PartialEq, Debug, Copy)]

@@ -63,7 +63,7 @@ fn draw_color_indicators(
                 ColorSelector{ color: grid.colors[i]},
             )).observe(select_color);
         } else {  // This is used to indicate which color is selected
-            let x = (windows.single().unwrap().resolution.width() / 2.0 - size * 2.0) * -1.0;
+            let x = -windows.single().unwrap().resolution.width() / 2.0 + size * 2.0;
             commands.spawn((
                 Mesh2d(meshes.add(hex)),
                 MeshMaterial2d(materials.add(current_color.color)),

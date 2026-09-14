@@ -47,7 +47,7 @@ fn draw_indicators(
         let x = size * 3.0 / 2.0 * indicator.coords.0 as f32;
         let y = -size * (sqrt(3.0) / 2.0 * indicator.coords.0 as f32 + sqrt(3.0) * indicator.coords.1 as f32);
         //
-        let indicator_size = Vec2::new(40.0, 80.0);
+        let indicator_size = Vec2::new(40.0, 70.0);
         let s = -indicator.coords.0 - indicator.coords.1;
         let rotate_in_radians = if indicator.coords.1  <= 0 && s >= 0 {
             0.0
