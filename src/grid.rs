@@ -9,7 +9,7 @@ use crate::color_list::ColorList;
 use crate::color_selection::{ColorPlugin, CurrentColor};
 use crate::numbers::{NumberPlugin, NumberIndicator};
 use strum::{EnumCount};
-use crate::shapes::{ShapesPlugin, ShapeList};
+use crate::shapes::{ShapesPlugin, ShapeList, Shape};
 
 pub const GRID_SIZE: f32 = 250.0; // Pointy-top -> size from center to top
 pub const HEXAGONS_FROM_CENTER: f32 = 3.0;
@@ -30,7 +30,7 @@ pub struct Grid{
     pub cells: HashMap<HexCoordinates, CellState>,
     pub colors: Vec<Color>,
     pub number_indicators: Vec<NumberIndicator>,
-    pub shapes: Vec<Vec<HexCoordinates>>
+    pub shapes: Vec<Shape>
 }
 impl Grid {
     pub fn new() -> Self {
@@ -46,7 +46,7 @@ impl Grid {
                 if q.abs() == 4 || r.abs() == 4 || s.abs() == 4 {
                     number_coords.push((q, r));
                 } else {
-                    cells.insert(HexCoordinates { q, r, s }, CellState::Empty);
+                    cells.insert(HexCoordinates { q, r }, CellState::Empty);
                 }
             }
         }
@@ -82,13 +82,18 @@ impl Grid {
 
         let mut shape_index = Vec::new();
         let mut shapes = Vec::new();
-        for _ in 0..3 {
+        for i in 0..3 {
             let mut num = rand::rng().random_range(0..ShapeList::COUNT);
             while shape_index.contains(&num) {
                 num = rand::rng().random_range(0..ShapeList::COUNT);
             }
+            let color = if i == 0 || i == 1 {
+                colors[0]
+            } else {
+                colors[1]
+            };
             shape_index.push(num);
-            shapes.push(ShapeList::shape_index(num));
+            shapes.push(Shape::new(ShapeList::shape_index(num), color));
         }
 
 
@@ -97,13 +102,10 @@ impl Grid {
 }
 
 
-
-
 #[derive(Component, Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub struct HexCoordinates {
     pub q: i8,
     pub r: i8,
-    pub s: i8,
 }
 
 #[derive(Component, Clone, PartialEq, Debug, Copy)]
