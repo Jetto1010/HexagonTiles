@@ -5,6 +5,7 @@ use bevy::color::Color;
 use bevy::input::ButtonInput;
 use bevy::mesh::{Mesh, Mesh2d};
 use crate::grid::Grid;
+use crate::hexagon::{HEXAGON_SIZE, hexagon_mesh};
 
 
 pub struct ColorPlugin;
@@ -50,9 +51,9 @@ fn draw_color_indicators(
     current_color: ResMut<CurrentColor>,
     windows: Query<&mut Window>,
 ) {
-    let size = crate::grid::HEXAGON_SIZE / 2.0;
+    let size = HEXAGON_SIZE / 2.0;
     for i in 0..4 {
-        let hex = crate::grid::hexagon_mesh(size);
+        let hex = hexagon_mesh(size);
         let y = windows.single().unwrap().resolution.height() / 2.0 - size * 2.0;
         if i != 3 { // Takes one of three colors of the grid
             let x = windows.single().unwrap().resolution.width() / 2.0 - size * 2.0 * (4 - i) as f32;

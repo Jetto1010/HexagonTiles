@@ -5,6 +5,7 @@ mod color_list;
 mod color_selection;
 mod numbers;
 mod shapes;
+mod hexagon;
 
 fn main() {
     let mut app = App::new();

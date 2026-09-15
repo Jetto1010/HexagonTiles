@@ -1,7 +1,4 @@
 use std::f32::consts::PI;
-use bevy::asset::RenderAssetUsages;
-use bevy::math::ops::sqrt;
-use bevy::mesh::{Indices, PrimitiveTopology};
 use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
 use rand::RngExt;
@@ -10,10 +7,10 @@ use crate::color_selection::{ColorPlugin, CurrentColor};
 use crate::numbers::{NumberPlugin, NumberIndicator};
 use strum::{EnumCount};
 use crate::shapes::{ShapesPlugin, ShapeList, Shape};
+use crate::hexagon::{HexCoordinates, HEXAGON_SIZE, hexagon_mesh, flat_hex_to_pixel};
 
 pub const GRID_SIZE: f32 = 250.0; // Pointy-top -> size from center to top
 pub const HEXAGONS_FROM_CENTER: f32 = 3.0;
-pub const HEXAGON_SIZE: f32 = GRID_SIZE / HEXAGONS_FROM_CENTER; // Flat-top -> size from center to right edge
 
 pub struct GridPlugin;
 impl Plugin for GridPlugin {
@@ -70,12 +67,13 @@ impl Grid {
             if (q == -4 && r==0) || (q == 4 && r == -4) || (q == 0 && r == 4) {
                 continue;
             }
+            let hex_coords = HexCoordinates { q, r };
             let new_indicator = if r <= 0 && s >= 0 {
-                NumberIndicator::new(vec![1, 2, 3, 1], coord, colors[0])
+                NumberIndicator::new(vec![1, 2, 3, 1], hex_coords, colors[0])
             } else if r >= 0 && q <= 0 {
-                NumberIndicator::new(vec![1, 2, 3, 1], coord, colors[1])
+                NumberIndicator::new(vec![1, 2, 3, 1], hex_coords, colors[1])
             } else {
-                NumberIndicator::new(vec![1, 2, 3], coord, colors[2])
+                NumberIndicator::new(vec![1, 2, 3], hex_coords, colors[2])
             };
             number_indicators.push(new_indicator)
         }
@@ -102,11 +100,7 @@ impl Grid {
 }
 
 
-#[derive(Component, Clone, Copy, PartialEq, Eq, Debug, Hash)]
-pub struct HexCoordinates {
-    pub q: i8,
-    pub r: i8,
-}
+
 
 #[derive(Component, Clone, PartialEq, Debug, Copy)]
 pub enum CellState{
@@ -130,13 +124,12 @@ fn draw_grid(
             CellState::Filled(color) => *color // if drawing an already filled grid in the future
         };
 
-        let x = size * 3.0 / 2.0 * coord.q as f32;
-        let y = -size * (sqrt(3.0) / 2.0 * coord.q as f32 + sqrt(3.0) * coord.r as f32);
+        let (x, y) = flat_hex_to_pixel(*coord, size);
         let hex = hexagon_mesh(size - 5.0);
         commands.spawn((
             Mesh2d(meshes.add(hex)),
             MeshMaterial2d(materials.add(color)),
-            Transform::from_xyz(x, y, -10.0).with_rotation(Quat::from_rotation_z(PI / 2.0)),
+            Transform::from_xyz(x, -y, -10.0).with_rotation(Quat::from_rotation_z(PI / 2.0)),
             *coord,
         )).observe(click_hexagon);
     }
@@ -155,28 +148,7 @@ fn draw_grid_background(
         ));
 }
 
-pub fn hexagon_mesh(size: f32) -> Mesh {
-    let mut hex = Mesh::new(
-        PrimitiveTopology::TriangleList,
-        RenderAssetUsages::all(),
-    );
-    let mut v_pos = vec![[0.0, 0.0, 0.0]];
-    for i in 0..6 {
-        let angle = i as f32 * PI / 3.0;
-        v_pos.push([size * ops::sin(angle), size * ops::cos(angle), 0.0]);
-    }
 
-    hex.insert_attribute(Mesh::ATTRIBUTE_POSITION, v_pos);
-
-    // 0, 1, 6 is last triangle
-    let mut indicies = vec![0, 1, 6];
-    for i in 2..7 {
-        indicies.extend_from_slice(&[0, i, i - 1]);
-    }
-    // Sets indices
-    hex.insert_indices(Indices::U16(indicies));
-    hex
-}
 
 fn click_hexagon(
     pressed: On<Pointer<Press>>,

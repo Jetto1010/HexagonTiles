@@ -1,7 +1,7 @@
-use bevy::math::ops::sqrt;
 use bevy::prelude::*;
 use strum_macros::{EnumCount, EnumIter};
-use crate::grid::{Grid, HexCoordinates, HEXAGON_SIZE};
+use crate::grid::{Grid};
+use crate::hexagon::{HexCoordinates, HEXAGON_SIZE, hexagon_mesh, pointy_hex_to_pixel};
 
 pub struct ShapesPlugin;
 
@@ -71,13 +71,12 @@ fn draw_shapes(
     let mut shape_offset = 0.0;
     for current_shape in shapes {
         for hexagon in &current_shape.hexagons {
-            let x_local = size * (sqrt(3.0) * hexagon.q as f32 + sqrt(3.0) / 2.0 * hexagon.r as f32);
-            let y_local = -size * 3.0 / 2.0 * hexagon.r as f32 + shape_offset; // Plus offset per shape
-            let hex = crate::grid::hexagon_mesh(size - 1.0);
+            let (x_local, y_local) = pointy_hex_to_pixel(*hexagon, size);
+            let hex = hexagon_mesh(size - 1.0);
             commands.spawn((
                 Mesh2d(meshes.add(hex)),
                 MeshMaterial2d(materials.add(current_shape.color)),
-                Transform::from_xyz(x + x_local, y + y_local, -10.0),
+                Transform::from_xyz(x + x_local, y + -y_local + shape_offset, -10.0),
             ));
         }
 
