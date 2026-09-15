@@ -81,8 +81,8 @@ fn draw_shapes(
         }
 
         shape_offset += match current_shape.shape {
-            ShapeList::LineFour | ShapeList::LineThree => size * 2.0,
-            _ => size * 4.0
+            ShapeList::LineFour | ShapeList::LineThree => size * 2.25,
+            _ => size * 3.25
         };
     }
 }
