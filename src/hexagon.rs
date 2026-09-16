@@ -5,8 +5,6 @@ use bevy::mesh::{Indices, PrimitiveTopology};
 use bevy::prelude::*;
 use crate::grid::{GRID_SIZE, HEXAGONS_FROM_CENTER};
 
-pub struct HexagonPlugin;
-
 pub const HEXAGON_SIZE: f32 = GRID_SIZE / HEXAGONS_FROM_CENTER; // Flat-top -> size from center to right edge
 
 

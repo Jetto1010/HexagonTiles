@@ -16,7 +16,7 @@ impl Plugin for NumberPlugin {
 #[derive(Component)]
 pub struct NumberIndicator {
     numbers: Vec<i8>,
-    hex_coords: HexCoordinates, // In qrs coords
+    hex_coords: HexCoordinates,
     color: Color,
     border: IndicatorBorder
 }
