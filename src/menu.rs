@@ -3,35 +3,20 @@ use::bevy::prelude::*;
 use super::GameState;
 
 const TEXT_COLOR: Color = Color::srgb(0.9, 0.9, 0.9);
-const NORMAL_BUTTON: Color = Color::srgb(0.15, 0.15, 0.15);
-const HOVERED_BUTTON: Color = Color::srgb(0.25, 0.25, 0.25);
-const HOVERED_PRESSED_BUTTON: Color = Color::srgb(0.25, 0.65, 0.25);
-const PRESSED_BUTTON: Color = Color::srgb(0.35, 0.75, 0.35);
+const BUTTON_COLOR: Color = Color::srgb(0.15, 0.15, 0.15);
 
 // https://bevy.org/examples/games/game-menu/
 pub fn menu_plugin(app: &mut App) {
-    app.init_state::<MenuState>()
-        .add_systems(OnEnter(GameState::Menu), menu_setup)
-        .add_systems(OnEnter(MenuState::Main), main_menu_setup);
+    app
+        .add_systems(OnEnter(GameState::Menu), main_menu_setup)
+        .add_systems(Update, click_buttons.run_if(in_state(GameState::Menu)));
 }
 
-#[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
-enum MenuState {
-    #[default]
-    Main,
-    Settings,
-}
 
 #[derive(Component)]
 enum MenuButtonAction {
     Play,
-    Settings,
-    BackToMainMenu,
-    Quit,
-}
-
-fn menu_setup(mut menu_state: ResMut<NextState<MenuState>>) {
-    menu_state.set(MenuState::Main);
+    Quit
 }
 
 fn main_menu_setup(
@@ -52,7 +37,7 @@ fn main_menu_setup(
     };
 
     commands.spawn((
-            DespawnOnExit(MenuState::Main),
+            DespawnOnExit(GameState::Menu),
             Node {
                 width: percent(100),
                 height: percent(100),
@@ -64,23 +49,26 @@ fn main_menu_setup(
                 Node {
                     flex_direction: FlexDirection::Column,
                     align_items: AlignItems::Center,
+                    width: percent(100),
+                    height: percent(100),
                     ..default()
                 },
                 BackgroundColor(Color::srgb(0.6, 0.0, 0.0)),
                 children![(
-                    Text::new("Bevy Game Menu UI"),
-                        TextFont {
-                            font_size: FontSize::Px(67.0),
-                            ..default()
-                        },
-                        TextColor(TEXT_COLOR),
-                        Node {
-                            margin: UiRect::all(px(50)),
-                            ..default()
-                        },
+                    Text::new("Hexagon Tiling"),
+                    TextFont {
+                        font_size: FontSize::Px(67.0),
+                        ..default()
+                    },
+                    TextColor(TEXT_COLOR),
+                    Node {
+                        margin: UiRect::all(px(50)),
+                        ..default()
+                    },
+                ),(
                     Button,
                     button_node.clone(),
-                    BackgroundColor(NORMAL_BUTTON),
+                    BackgroundColor(BUTTON_COLOR),
                     MenuButtonAction::Play,
                     children![(
                         Text::new("New Game"),
@@ -89,18 +77,8 @@ fn main_menu_setup(
                     )]
                 ),(
                     Button,
-                    button_node.clone(),
-                    BackgroundColor(NORMAL_BUTTON),
-                    MenuButtonAction::Settings,
-                    children![(
-                        Text::new("Settings"),
-                        button_text_font.clone(),
-                        TextColor(TEXT_COLOR),
-                    )]
-                ),(
-                    Button,
                     button_node,
-                    BackgroundColor(NORMAL_BUTTON),
+                    BackgroundColor(BUTTON_COLOR),
                     MenuButtonAction::Quit,
                     children![(
                         Text::new("Quit"),
@@ -110,5 +88,24 @@ fn main_menu_setup(
                 )]
             )]
     ));
+}
+
+fn click_buttons(
+    interaction_query: Query<(&Interaction, &MenuButtonAction), (Changed<Interaction>, With<Button>)>,
+    mut app_exit_writer: MessageWriter<AppExit>,
+    mut game_state: ResMut<NextState<GameState>>
+) {
+    for (interaction, menu_button) in &interaction_query {
+        if *interaction == Interaction::Pressed {
+            match menu_button {
+                MenuButtonAction::Quit => {
+                    app_exit_writer.write(AppExit::Success);
+                }
+                MenuButtonAction::Play => {
+                    game_state.set(GameState::Game)
+                }
+            }
+        }
+    }
 }
 
