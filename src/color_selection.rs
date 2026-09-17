@@ -4,7 +4,7 @@ use bevy::asset::Assets;
 use bevy::color::Color;
 use bevy::input::ButtonInput;
 use bevy::mesh::{Mesh, Mesh2d};
-use crate::grid::Grid;
+use crate::grid::{Grid, GridComponent};
 use crate::hexagon::{HEXAGON_SIZE, hexagon_mesh};
 
 
@@ -58,6 +58,7 @@ fn draw_color_indicators(
         if i != 3 { // Takes one of three colors of the grid
             let x = windows.single().unwrap().resolution.width() / 2.0 - size * 2.0 * (4 - i) as f32;
             commands.spawn((
+                GridComponent,
                 Mesh2d(meshes.add(hex)),
                 MeshMaterial2d(materials.add(grid.colors[i])),
                 Transform::from_xyz(x, y, -10.0),
@@ -66,10 +67,11 @@ fn draw_color_indicators(
         } else {  // This is used to indicate which color is selected
             let x = -windows.single().unwrap().resolution.width() / 2.0 + size * 2.0;
             commands.spawn((
+                GridComponent,
                 Mesh2d(meshes.add(hex)),
                 MeshMaterial2d(materials.add(current_color.color)),
                 Transform::from_xyz(x, y, -10.0),
-                ColorIndicator {},
+                ColorIndicator,
             ));
         }
     }

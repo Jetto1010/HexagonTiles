@@ -9,6 +9,8 @@ use strum::{EnumCount};
 use crate::shapes::{ShapesPlugin, ShapeList, Shape};
 use crate::hexagon::{HexCoordinates, HEXAGON_SIZE, hexagon_mesh, flat_hex_to_pixel};
 
+use super::{GameState};
+
 pub const GRID_SIZE: f32 = 250.0; // Pointy-top -> size from center to top
 pub const HEXAGONS_FROM_CENTER: f32 = 3.0;
 
@@ -17,8 +19,8 @@ impl Plugin for GridPlugin {
     fn build(&self, app: &mut App){
         app
             .add_plugins((ColorPlugin, MeshPickingPlugin, NumberPlugin, ShapesPlugin))
-            .insert_resource(Grid::new())
-            .add_systems(Startup, (draw_grid, draw_grid_background));
+            .add_systems(OnEnter(GameState::Game), (draw_grid, draw_grid_background))
+            .insert_resource(Grid::new());
     }
 }
 
@@ -100,7 +102,8 @@ impl Grid {
 }
 
 
-
+#[derive(Component)]
+pub struct GridComponent;
 
 #[derive(Component, Clone, PartialEq, Debug, Copy)]
 pub enum CellState{
@@ -127,6 +130,7 @@ fn draw_grid(
         let (x, y) = flat_hex_to_pixel(*coord, size);
         let hex = hexagon_mesh(size - 5.0);
         commands.spawn((
+            GridComponent,
             Mesh2d(meshes.add(hex)),
             MeshMaterial2d(materials.add(color)),
             Transform::from_xyz(x, -y, -10.0).with_rotation(Quat::from_rotation_z(PI / 2.0)),
@@ -142,6 +146,7 @@ fn draw_grid_background(
 ) {
     let background_hex = hexagon_mesh(GRID_SIZE + 10.0);
     commands.spawn((
+        GridComponent,
         Mesh2d(meshes.add(background_hex)),
         MeshMaterial2d(materials.add(Color::srgba(0.678, 0.847, 0.902, 0.5))),
         Transform::from_xyz(0.0, 0.0, -13.0)

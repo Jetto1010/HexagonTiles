@@ -1,6 +1,6 @@
 use std::f32::consts::PI;
 use bevy::prelude::*;
-use crate::grid::{Grid};
+use crate::grid::{Grid, GridComponent};
 use crate::hexagon::{flat_hex_to_pixel, HexCoordinates, HEXAGON_SIZE};
 
 pub struct NumberPlugin;
@@ -64,6 +64,7 @@ fn draw_indicators(
         };
     commands
         .spawn((
+            GridComponent,
             Sprite::from_color(indicator.color, indicator_size),
             Transform::from_xyz(x, -y, -11.0).with_rotation(Quat::from_rotation_z(rotate_in_radians)),
         ))

@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use strum_macros::{EnumCount, EnumIter};
-use crate::grid::{Grid};
+use crate::grid::{Grid, GridComponent};
 use crate::hexagon::{HexCoordinates, HEXAGON_SIZE, hexagon_mesh, pointy_hex_to_pixel};
 
 pub struct ShapesPlugin;
@@ -74,6 +74,7 @@ fn draw_shapes(
             let (x_local, y_local) = pointy_hex_to_pixel(*hexagon, size);
             let hex = hexagon_mesh(size - 1.0);
             commands.spawn((
+                GridComponent,
                 Mesh2d(meshes.add(hex)),
                 MeshMaterial2d(materials.add(current_shape.color)),
                 Transform::from_xyz(x + x_local, y + -y_local + shape_offset, -10.0),
