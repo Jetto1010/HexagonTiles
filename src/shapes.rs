@@ -3,12 +3,14 @@ use strum_macros::{EnumCount, EnumIter};
 use crate::grid::{Grid, GridComponent};
 use crate::hexagon::{HexCoordinates, HEXAGON_SIZE, hexagon_mesh, pointy_hex_to_pixel};
 
+use super::{GameState};
+
 pub struct ShapesPlugin;
 
 impl Plugin for ShapesPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_systems(Startup, draw_shapes);
+            .add_systems(OnEnter(GameState::Game), draw_shapes);
     }
 }
 

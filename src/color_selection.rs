@@ -1,12 +1,8 @@
 use bevy::prelude::*;
-use bevy::app::{App, Startup, Update};
-use bevy::asset::Assets;
-use bevy::color::Color;
-use bevy::input::ButtonInput;
-use bevy::mesh::{Mesh, Mesh2d};
 use crate::grid::{Grid, GridComponent};
 use crate::hexagon::{HEXAGON_SIZE, hexagon_mesh};
 
+use super::{GameState};
 
 pub struct ColorPlugin;
 
@@ -14,7 +10,7 @@ impl Plugin for ColorPlugin {
     fn build(&self, app: &mut App) {
         app
             .insert_resource(CurrentColor::new(Color::srgb(1.0, 1.0, 1.0)))
-            .add_systems(Startup, draw_color_indicators)
+            .add_systems(OnEnter(GameState::Game), draw_color_indicators)
             .add_systems(Update, change_active_color)
             .add_observer(change_current_color);
     }

@@ -20,9 +20,10 @@ enum GameState {
 
 fn main() {
     App::new()
-        .add_plugins((DefaultPlugins, menu_plugin))
+        .add_plugins(DefaultPlugins)
         .init_state::<GameState>()
         .add_systems(Startup, setup)
+        .add_plugins((menu_plugin, GridPlugin))
         .run();
 }
 

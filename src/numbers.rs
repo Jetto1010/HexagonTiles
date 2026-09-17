@@ -3,12 +3,14 @@ use bevy::prelude::*;
 use crate::grid::{Grid, GridComponent};
 use crate::hexagon::{flat_hex_to_pixel, HexCoordinates, HEXAGON_SIZE};
 
+use super::{GameState};
+
 pub struct NumberPlugin;
 
 impl Plugin for NumberPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_systems(Startup, draw_indicators);
+            .add_systems(OnEnter(GameState::Game), draw_indicators);
     }
 }
 
