@@ -33,6 +33,7 @@ pub struct Grid{
 }
 impl Grid {
     pub fn new() -> Self {
+        // println!("{seed}");
         let radius = HEXAGONS_FROM_CENTER as i8 + 1; // +1 for indicators
         let mut cells = HashMap::new();
         let mut number_coords = Vec::new();

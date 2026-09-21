@@ -8,15 +8,13 @@ mod color_selection;
 mod numbers;
 mod shapes;
 mod hexagon;
-mod custom;
 mod menu;
 
 #[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
 enum GameState {
     #[default]
     Menu,
-    Game,
-    Custom
+    Game
 }
 
 fn main() {

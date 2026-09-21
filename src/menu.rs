@@ -1,6 +1,6 @@
 use::bevy::prelude::*;
-use bevy::text::{EditableText};
-use bevy::input_focus::{AutoFocus, InputFocus};
+use bevy::text::{EditableText, TextEditChange};
+use rand::random;
 
 use super::GameState;
 
@@ -10,8 +10,10 @@ const BUTTON_COLOR: Color = Color::srgb(0.15, 0.15, 0.15);
 // https://bevy.org/examples/games/game-menu/
 pub fn menu_plugin(app: &mut App) {
     app
+        .insert_resource(Seed(random::<u64>().to_string()))
         .add_systems(OnEnter(GameState::Menu), main_menu_setup)
-        .add_systems(Update, (click_buttons, input_seed).run_if(in_state(GameState::Menu)));
+        .add_systems(Update, click_buttons.run_if(in_state(GameState::Menu)))
+        .add_observer(seed_change);
 }
 
 
@@ -21,8 +23,12 @@ enum MenuButtonAction {
     Quit
 }
 
+#[derive(Resource)]
+struct Seed(String);
+
 fn main_menu_setup(
-    mut commands: Commands
+    mut commands: Commands,
+    seed : Res<Seed>,
 ){
     let default_node = Node {
         width: px(500),
@@ -32,7 +38,6 @@ fn main_menu_setup(
         align_items: AlignItems::Center,
         ..default()
     };
-
     let button_text_font = TextFont {
         font_size: FontSize::Px(33.0),
         ..default()
@@ -81,31 +86,29 @@ fn main_menu_setup(
                     BackgroundColor(BUTTON_COLOR),
                     default_node.clone(),
                     children![(
-                        Text::new("Seed:"),
-                        button_text_font.clone(),
-                        TextColor(TEXT_COLOR),
-                        Node {
-                            margin: UiRect::px(50.0, 0.0, 50.0, 50.0),
-                            width: percent(20),
-                            ..default()
-                        }
-                    ),(
-                       Text::new("3453453435"),
-                        button_text_font.clone(),
-                        TextColor(TEXT_COLOR),
-                        EditableText {
-                            max_characters: Some(16),
-                            allow_newlines: false,
-                            ..default()
-                        },
-                        TextLayout::no_wrap(),
-                        Node {
-                            margin: UiRect::px(50.0, 0.0, 50.0, 50.0),
-                            width: percent(80),
-                            ..default()
-                        },
-                        AutoFocus,
-                    )],
+                            Text::new("Seed:"),
+                            button_text_font.clone(),
+                            TextColor(TEXT_COLOR),
+                            Node {
+                                margin: UiRect::px(30.0, 0.0, 50.0, 50.0),
+                                width: percent(20),
+                                ..default()
+                            }
+                        ),(
+                            EditableText {
+                                max_characters: Some(32),
+                                visible_width: Some(32.0),
+                                ..EditableText::new(&seed.0)
+                            },
+                            button_text_font.clone(),
+                            TextColor(TEXT_COLOR),
+                            TextLayout::no_wrap(),
+                            Node {
+                                margin: UiRect::px(20.0, 0.0, 50.0, 50.0),
+                                width: percent(65),
+                                ..default()
+                            }
+                        ),],
                 ),(
                     Button,
                     default_node,
@@ -140,17 +143,14 @@ fn click_buttons(
     }
 }
 
-fn input_seed(
-    input_focus: Res<InputFocus>,
-    button_input: Res<ButtonInput<KeyCode>>,
-    mut input: Query<&mut EditableText>,
-){
-    if button_input.just_pressed(KeyCode::Enter)
-        && let Some(entity) = input_focus.get()
-        && let Ok(input) = input.get_mut(entity)
-    {
-        let text: String = input.value().to_string();
-        println!("Submitted: {text}");
+fn seed_change(
+    change: On<TextEditChange>,
+    q: Query<&EditableText>,
+    mut seed: ResMut<Seed>,
+) {
+    if let Ok(text) = q.get(change.event_target()) {
+        seed.0 = text.value().to_string();
+        println!("Seed set to {}", seed.0);
     }
 }
 
