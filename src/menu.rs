@@ -19,11 +19,14 @@ enum MenuButtonAction {
     Quit
 }
 
+#[derive(Component)]
+struct SeedField;
+
 fn main_menu_setup(
     mut commands: Commands
 ){
-    let button_node = Node {
-        width: px(300),
+    let default_node = Node {
+        width: px(500),
         height: px(65),
         margin: UiRect::all(px(20)),
         justify_content: JustifyContent::Center,
@@ -67,7 +70,7 @@ fn main_menu_setup(
                     },
                 ),(
                     Button,
-                    button_node.clone(),
+                    default_node.clone(),
                     BackgroundColor(BUTTON_COLOR),
                     MenuButtonAction::Play,
                     children![(
@@ -76,8 +79,31 @@ fn main_menu_setup(
                         TextColor(TEXT_COLOR),
                     )]
                 ),(
+                    BackgroundColor(BUTTON_COLOR),
+                    default_node.clone(),
+                    children![(
+                        Text::new("Seed:"),
+                        button_text_font.clone(),
+                        TextColor(TEXT_COLOR),
+                        Node {
+                            margin: UiRect::px(50.0, 0.0, 50.0, 50.0),
+                            width: percent(20),
+                            ..default()
+                        }
+                    ),(
+                       Text::new("3453453435"),
+                        SeedField,
+                        button_text_font.clone(),
+                        TextColor(TEXT_COLOR),
+                        Node {
+                            margin: UiRect::px(50.0, 0.0, 50.0, 50.0),
+                            width: percent(80),
+                            ..default()
+                        }
+                    )],
+                ),(
                     Button,
-                    button_node,
+                    default_node,
                     BackgroundColor(BUTTON_COLOR),
                     MenuButtonAction::Quit,
                     children![(
@@ -102,10 +128,17 @@ fn click_buttons(
                     app_exit_writer.write(AppExit::Success);
                 }
                 MenuButtonAction::Play => {
-                    game_state.set(GameState::Game)
+                    game_state.set(GameState::Game);
                 }
             }
         }
     }
+}
+
+fn input_seed(
+    button_input: Res<ButtonInput<KeyCode>>,
+    seed_text: Query<&SeedField>,
+){
+    
 }
 
