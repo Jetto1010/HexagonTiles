@@ -1,4 +1,6 @@
 use::bevy::prelude::*;
+use bevy::text::{EditableText};
+use bevy::input_focus::{AutoFocus, InputFocus};
 
 use super::GameState;
 
@@ -9,7 +11,7 @@ const BUTTON_COLOR: Color = Color::srgb(0.15, 0.15, 0.15);
 pub fn menu_plugin(app: &mut App) {
     app
         .add_systems(OnEnter(GameState::Menu), main_menu_setup)
-        .add_systems(Update, click_buttons.run_if(in_state(GameState::Menu)));
+        .add_systems(Update, (click_buttons, input_seed).run_if(in_state(GameState::Menu)));
 }
 
 
@@ -18,9 +20,6 @@ enum MenuButtonAction {
     Play,
     Quit
 }
-
-#[derive(Component)]
-struct SeedField;
 
 fn main_menu_setup(
     mut commands: Commands
@@ -92,14 +91,20 @@ fn main_menu_setup(
                         }
                     ),(
                        Text::new("3453453435"),
-                        SeedField,
                         button_text_font.clone(),
                         TextColor(TEXT_COLOR),
+                        EditableText {
+                            max_characters: Some(16),
+                            allow_newlines: false,
+                            ..default()
+                        },
+                        TextLayout::no_wrap(),
                         Node {
                             margin: UiRect::px(50.0, 0.0, 50.0, 50.0),
                             width: percent(80),
                             ..default()
-                        }
+                        },
+                        AutoFocus,
                     )],
                 ),(
                     Button,
@@ -136,9 +141,16 @@ fn click_buttons(
 }
 
 fn input_seed(
+    input_focus: Res<InputFocus>,
     button_input: Res<ButtonInput<KeyCode>>,
-    seed_text: Query<&SeedField>,
+    mut input: Query<&mut EditableText>,
 ){
-    
+    if button_input.just_pressed(KeyCode::Enter)
+        && let Some(entity) = input_focus.get()
+        && let Ok(input) = input.get_mut(entity)
+    {
+        let text: String = input.value().to_string();
+        println!("Submitted: {text}");
+    }
 }
 
