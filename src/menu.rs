@@ -1,7 +1,7 @@
 use::bevy::prelude::*;
 use bevy::text::{EditableText, TextEditChange};
 use rand::random;
-
+use crate::game::new_game;
 use super::GameState;
 
 const TEXT_COLOR: Color = Color::srgb(0.9, 0.9, 0.9);
@@ -12,8 +12,9 @@ pub fn menu_plugin(app: &mut App) {
     app
         .insert_resource(Seed(random::<u64>().to_string()))
         .add_systems(OnEnter(GameState::Menu), main_menu_setup)
-        .add_systems(Update, click_buttons.run_if(in_state(GameState::Menu)))
-        .add_observer(seed_change);
+        .add_systems(Update, (click_buttons, press_enter).run_if(in_state(GameState::Menu)))
+        .add_observer(seed_change)
+        .add_observer(start_game);
 }
 
 
@@ -24,7 +25,10 @@ enum MenuButtonAction {
 }
 
 #[derive(Resource)]
-struct Seed(String);
+struct Seed(pub String);
+
+#[derive(Event)]
+struct StartGameEvent;
 
 fn main_menu_setup(
     mut commands: Commands,
@@ -127,7 +131,7 @@ fn main_menu_setup(
 fn click_buttons(
     interaction_query: Query<(&Interaction, &MenuButtonAction), (Changed<Interaction>, With<Button>)>,
     mut app_exit_writer: MessageWriter<AppExit>,
-    mut game_state: ResMut<NextState<GameState>>
+    mut commands: Commands,
 ) {
     for (interaction, menu_button) in &interaction_query {
         if *interaction == Interaction::Pressed {
@@ -136,7 +140,7 @@ fn click_buttons(
                     app_exit_writer.write(AppExit::Success);
                 }
                 MenuButtonAction::Play => {
-                    game_state.set(GameState::Game);
+                    commands.trigger(StartGameEvent);
                 }
             }
         }
@@ -154,3 +158,22 @@ fn seed_change(
     }
 }
 
+fn press_enter(
+    button_input: Res<ButtonInput<KeyCode>>,
+    mut commands: Commands,
+) {
+    if button_input.just_pressed(KeyCode::Enter) {
+        commands.trigger(StartGameEvent);
+    }
+}
+
+fn start_game(
+    _: On<StartGameEvent>,
+    mut commands: Commands,
+    seed: Res<Seed>,
+    mut game_state: ResMut<NextState<GameState>>
+) {
+    let new_grid = new_game(seed.0.to_string());
+    commands.insert_resource(new_grid);
+    game_state.set(GameState::Game);
+}

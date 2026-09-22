@@ -11,7 +11,7 @@ impl Plugin for ColorPlugin {
         app
             .insert_resource(CurrentColor::new(Color::srgb(1.0, 1.0, 1.0)))
             .add_systems(OnEnter(GameState::Game), draw_color_indicators)
-            .add_systems(Update, change_active_color.run_if(resource_exists::<Game>))
+            .add_systems(Update, change_active_color.run_if(in_state(GameState::Game)))
             .add_observer(change_current_color);
     }
 }

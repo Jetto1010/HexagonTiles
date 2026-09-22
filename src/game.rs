@@ -1,13 +1,14 @@
 use std::f32::consts::PI;
 use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
-use rand::RngExt;
 use crate::color_list::ColorList;
 use crate::color_selection::{ColorPlugin, CurrentColor};
 use crate::numbers::{NumberPlugin, NumberIndicator};
-use strum::{EnumCount};
-use crate::shapes::{ShapesPlugin, ShapeList, Shape};
+use crate::shapes::{ShapesPlugin, Shape, ShapeList};
 use crate::hexagon::{HexCoordinates, HEXAGON_SIZE, hexagon_mesh, flat_hex_to_pixel};
+use rand::{RngExt, SeedableRng};
+use rand::rngs::ChaCha8Rng;
+use strum::{EnumCount};
 
 use super::{GameState};
 
@@ -19,8 +20,7 @@ impl Plugin for GamePlugin {
     fn build(&self, app: &mut App){
         app
             .add_plugins((ColorPlugin, MeshPickingPlugin, NumberPlugin, ShapesPlugin))
-            .add_systems(OnEnter(GameState::Game), (draw_grid, draw_grid_background))
-            .insert_resource(Game::new());
+            .add_systems(OnEnter(GameState::Game), (draw_grid, draw_grid_background));
     }
 }
 
@@ -31,77 +31,75 @@ pub struct Game {
     pub number_indicators: Vec<NumberIndicator>,
     pub shapes: Vec<Shape>
 }
-impl Game {
-    pub fn new() -> Self {
-        // println!("{seed}");
-        let radius = HEXAGONS_FROM_CENTER as i8 + 1; // +1 for indicators
-        let mut cells = HashMap::new();
-        let mut number_coords = Vec::new();
 
-        for q in -radius..=radius {
-            let r_min = (-radius).max(-q - radius);
-            let r_max = radius.min(-q + radius);
-            for r in r_min..=r_max {
-                let s = -q - r;
-                if q.abs() == 4 || r.abs() == 4 || s.abs() == 4 {
-                    number_coords.push((q, r));
-                } else {
-                    cells.insert(HexCoordinates { q, r }, CellState::Empty);
-                }
-            }
-        }
+pub fn new_game(seed: String) -> Game {
 
-        let mut color_index = Vec::new();
-        let mut colors = Vec::new();
-        for _ in 0..3 {
-            let mut num = rand::rng().random_range(0..ColorList::COUNT - 1);
-            while color_index.contains(&num) {
-                num = rand::rng().random_range(0..ColorList::COUNT - 1);
-            }
-            color_index.push(num);
-            colors.push(ColorList::color_index(num));
-        }
+    let radius = HEXAGONS_FROM_CENTER as i8 + 1; // +1 for indicators
+    let mut cells = HashMap::new();
+    let mut number_coords = Vec::new();
 
-        let mut number_indicators = Vec::new();
-        for coord in number_coords {
-            let q = coord.0;
-            let r = coord.1;
+    for q in -radius..=radius {
+        let r_min = (-radius).max(-q - radius);
+        let r_max = radius.min(-q + radius);
+        for r in r_min..=r_max {
             let s = -q - r;
-            if (q == -4 && r==0) || (q == 4 && r == -4) || (q == 0 && r == 4) {
-                continue;
-            }
-            let hex_coords = HexCoordinates { q, r };
-            let new_indicator = if r <= 0 && s >= 0 {
-                NumberIndicator::new(vec![1, 2, 3, 1], hex_coords, colors[0])
-            } else if r >= 0 && q <= 0 {
-                NumberIndicator::new(vec![1, 2, 3, 1], hex_coords, colors[1])
+            if q.abs() == 4 || r.abs() == 4 || s.abs() == 4 {
+                number_coords.push((q, r));
             } else {
-                NumberIndicator::new(vec![1, 2, 3], hex_coords, colors[2])
-            };
-            number_indicators.push(new_indicator)
-        }
-
-        let mut shape_index = Vec::new();
-        let mut shapes = Vec::new();
-        for i in 0..3 {
-            let mut num = rand::rng().random_range(0..ShapeList::COUNT);
-            while shape_index.contains(&num) {
-                num = rand::rng().random_range(0..ShapeList::COUNT);
+                cells.insert(HexCoordinates { q, r }, CellState::Empty);
             }
-            let color = if i == 0 || i == 1 {
-                colors[0]
-            } else {
-                colors[1]
-            };
-            shape_index.push(num);
-            shapes.push(Shape::new(ShapeList::shape_index(num), color));
         }
-
-
-        Game { cells, colors, number_indicators, shapes }
     }
-}
 
+    let mut rng = ChaCha8Rng::seed_from_u64(seahash::hash(seed.as_bytes()));
+    let mut color_index = Vec::new();
+    let mut colors = Vec::new();
+    for _ in 0..3 {
+        let mut num = rng.random_range(0..ColorList::COUNT - 1);
+        while color_index.contains(&num) {
+            num = rng.random_range(0..ColorList::COUNT - 1);
+        }
+        color_index.push(num);
+        colors.push(ColorList::color_index(num));
+    }
+
+    let mut number_indicators = Vec::new();
+    for coord in number_coords {
+        let q = coord.0;
+        let r = coord.1;
+        let s = -q - r;
+        if (q == -4 && r==0) || (q == 4 && r == -4) || (q == 0 && r == 4) {
+            continue;
+        }
+        let hex_coords = HexCoordinates { q, r };
+        let new_indicator = if r <= 0 && s >= 0 {
+            NumberIndicator::new(vec![1, 2, 3, 1], hex_coords, colors[0])
+        } else if r >= 0 && q <= 0 {
+            NumberIndicator::new(vec![1, 2, 3, 1], hex_coords, colors[1])
+        } else {
+            NumberIndicator::new(vec![1, 2, 3], hex_coords, colors[2])
+        };
+        number_indicators.push(new_indicator)
+    }
+
+    let mut shape_index = Vec::new();
+    let mut shapes = Vec::new();
+    for i in 0..3 {
+        let mut num = rng.random_range(0..ShapeList::COUNT);
+        while shape_index.contains(&num) {
+            num = rng.random_range(0..ShapeList::COUNT);
+        }
+        let color = if i == 0 || i == 1 {
+            colors[0]
+        } else {
+            colors[1]
+        };
+        shape_index.push(num);
+        shapes.push(Shape::new(ShapeList::shape_index(num), color));
+    }
+
+    Game { cells, colors, number_indicators, shapes }
+}
 
 #[derive(Component)]
 pub struct GridComponent;
@@ -114,14 +112,14 @@ pub enum CellState{
 
 fn draw_grid(
     mut commands: Commands,
-    grid: Res<Game>,
+    game: Res<Game>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
     ){
     // https://www.redblobgames.com/grids/hexagons/#basics
     let size = HEXAGON_SIZE / 2.0;
 
-    for cell in &grid.cells {
+    for cell in &game.cells {
         let coord = cell.0;
         let color = match cell.1 {
             CellState::Empty => Color::srgb(1.0, 1.0, 1.0),

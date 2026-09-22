@@ -5,9 +5,10 @@ edition = "2024"
 
 [dependencies]
 bevy = "0.19.1"
-rand = "0.10.2"
+rand =  { version = "0.10.3", features = ["chacha"] }
 strum = "0.28"
 strum_macros = "0.28"
+seahash = "4.1.0"
 
 [profile.dev.package."*"]
 opt-level = 3
