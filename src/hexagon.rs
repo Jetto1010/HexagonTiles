@@ -3,7 +3,7 @@ use bevy::asset::RenderAssetUsages;
 use bevy::math::ops::sqrt;
 use bevy::mesh::{Indices, PrimitiveTopology};
 use bevy::prelude::*;
-use crate::grid::{GRID_SIZE, HEXAGONS_FROM_CENTER};
+use crate::game::{GRID_SIZE, HEXAGONS_FROM_CENTER};
 
 pub const HEXAGON_SIZE: f32 = GRID_SIZE / HEXAGONS_FROM_CENTER; // Flat-top -> size from center to right edge
 

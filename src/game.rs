@@ -14,24 +14,24 @@ use super::{GameState};
 pub const GRID_SIZE: f32 = 250.0; // Pointy-top -> size from center to top
 pub const HEXAGONS_FROM_CENTER: f32 = 3.0;
 
-pub struct GridPlugin;
-impl Plugin for GridPlugin {
+pub struct GamePlugin;
+impl Plugin for GamePlugin {
     fn build(&self, app: &mut App){
         app
             .add_plugins((ColorPlugin, MeshPickingPlugin, NumberPlugin, ShapesPlugin))
             .add_systems(OnEnter(GameState::Game), (draw_grid, draw_grid_background))
-            .insert_resource(Grid::new());
+            .insert_resource(Game::new());
     }
 }
 
 #[derive(Resource)]
-pub struct Grid{
+pub struct Game {
     pub cells: HashMap<HexCoordinates, CellState>,
     pub colors: Vec<Color>,
     pub number_indicators: Vec<NumberIndicator>,
     pub shapes: Vec<Shape>
 }
-impl Grid {
+impl Game {
     pub fn new() -> Self {
         // println!("{seed}");
         let radius = HEXAGONS_FROM_CENTER as i8 + 1; // +1 for indicators
@@ -98,7 +98,7 @@ impl Grid {
         }
 
 
-        Grid { cells, colors, number_indicators, shapes }
+        Game { cells, colors, number_indicators, shapes }
     }
 }
 
@@ -114,7 +114,7 @@ pub enum CellState{
 
 fn draw_grid(
     mut commands: Commands,
-    grid: Res<Grid>,
+    grid: Res<Game>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
     ){
@@ -158,7 +158,7 @@ fn draw_grid_background(
 
 fn click_hexagon(
     pressed: On<Pointer<Press>>,
-    mut grid: ResMut<Grid>,
+    mut game: ResMut<Game>,
     current_color: Res<CurrentColor>,
     hexagons: Query<(&HexCoordinates, &MeshMaterial2d<ColorMaterial>)>,
     mut materials: ResMut<Assets<ColorMaterial>>,
@@ -172,7 +172,7 @@ fn click_hexagon(
     };
 
     // Unpacks the cell_state from the hashmap if the coord exists in the hashmap
-    if let Some(cell_state) = grid.cells.get_mut(coord) {
+    if let Some(cell_state) = game.cells.get_mut(coord) {
         *cell_state = match cell_state { // Matches the current state to change color
             CellState::Filled(color) if *color == current_color.color => CellState::Empty, // Matches to the
             _ => CellState::Filled(current_color.color),

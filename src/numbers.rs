@@ -1,6 +1,6 @@
 use std::f32::consts::PI;
 use bevy::prelude::*;
-use crate::grid::{Grid, GridComponent};
+use crate::game::{Game, GridComponent};
 use crate::hexagon::{flat_hex_to_pixel, HexCoordinates, HEXAGON_SIZE};
 
 use super::{GameState};
@@ -40,9 +40,9 @@ pub enum IndicatorBorder {
 
 fn draw_indicators(
     mut commands: Commands,
-    grid: Res<Grid>,
+    game: Res<Game>,
 ){
-    let number_indicator = &grid.number_indicators;
+    let number_indicator = &game.number_indicators;
     for indicator in number_indicator.iter() {
         let size = HEXAGON_SIZE / 2.0;
         let (x, y) = flat_hex_to_pixel(indicator.hex_coords, size);

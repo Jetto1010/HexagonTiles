@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use crate::grid::{Grid, GridComponent};
+use crate::game::{Game, GridComponent};
 use crate::hexagon::{HEXAGON_SIZE, hexagon_mesh};
 
 use super::{GameState};
@@ -11,7 +11,7 @@ impl Plugin for ColorPlugin {
         app
             .insert_resource(CurrentColor::new(Color::srgb(1.0, 1.0, 1.0)))
             .add_systems(OnEnter(GameState::Game), draw_color_indicators)
-            .add_systems(Update, change_active_color)
+            .add_systems(Update, change_active_color.run_if(resource_exists::<Game>))
             .add_observer(change_current_color);
     }
 }
@@ -41,7 +41,7 @@ struct ColorSelector {
 
 fn draw_color_indicators(
     mut commands: Commands,
-    grid: Res<Grid>,
+    game: Res<Game>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
     current_color: ResMut<CurrentColor>,
@@ -56,9 +56,9 @@ fn draw_color_indicators(
             commands.spawn((
                 GridComponent,
                 Mesh2d(meshes.add(hex)),
-                MeshMaterial2d(materials.add(grid.colors[i])),
+                MeshMaterial2d(materials.add(game.colors[i])),
                 Transform::from_xyz(x, y, -10.0),
-                ColorSelector{ color: grid.colors[i]},
+                ColorSelector{ color: game.colors[i]},
             )).observe(select_color);
         } else {  // This is used to indicate which color is selected
             let x = -windows.single().unwrap().resolution.width() / 2.0 + size * 2.0;
@@ -77,12 +77,12 @@ fn change_active_color(
     mut commands: Commands,
     buttons: Res<ButtonInput<MouseButton>>,
     current_color: ResMut<CurrentColor>,
-    grid: Res<Grid>,
+    game: Res<Game>,
 ) {
     if buttons.just_pressed(MouseButton::Right) {
-        let mut new_color = grid.colors[0];
+        let mut new_color = game.colors[0];
         if current_color.color != Color::srgb(1.0, 1.0, 1.0) {
-            new_color = grid.colors[(grid.colors.iter().position(|c| c == &current_color.color).unwrap() + 1).rem_euclid(3)]
+            new_color = game.colors[(game.colors.iter().position(|c| c == &current_color.color).unwrap() + 1).rem_euclid(3)]
         };
 
         commands.trigger(ChangedActiveColorEvent {color: new_color})

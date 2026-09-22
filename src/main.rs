@@ -1,8 +1,8 @@
 use bevy::prelude::*;
-use crate::grid::GridPlugin;
+use crate::game::GamePlugin;
 use crate::menu::menu_plugin;
 
-mod grid;
+mod game;
 mod color_list;
 mod color_selection;
 mod numbers;
@@ -22,7 +22,7 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .init_state::<GameState>()
         .add_systems(Startup, setup)
-        .add_plugins((menu_plugin, GridPlugin))
+        .add_plugins((menu_plugin, GamePlugin))
         .run();
 }
 

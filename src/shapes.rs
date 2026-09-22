@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use strum_macros::{EnumCount, EnumIter};
-use crate::grid::{Grid, GridComponent};
+use crate::game::{Game, GridComponent};
 use crate::hexagon::{HexCoordinates, HEXAGON_SIZE, hexagon_mesh, pointy_hex_to_pixel};
 
 use super::{GameState};
@@ -60,12 +60,12 @@ impl Shape {
 
 fn draw_shapes(
     mut commands: Commands,
-    grid: Res<Grid>,
+    game: Res<Game>,
     windows: Query<&mut Window>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
 ){
-    let shapes = &grid.shapes;
+    let shapes = &game.shapes;
     let size = HEXAGON_SIZE / 3.0;
     let y = -windows.single().unwrap().resolution.height() / 2.0 + HEXAGON_SIZE;
     let x = -windows.single().unwrap().resolution.width() / 2.0 + HEXAGON_SIZE / 2.0;
