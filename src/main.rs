@@ -23,10 +23,20 @@ fn main() {
         .init_state::<GameState>()
         .add_systems(Startup, setup)
         .add_plugins((menu_plugin, GamePlugin))
+        .add_systems(Update, exit)
         .run();
 }
 
 
 fn setup(mut commands: Commands) {
     commands.spawn(Camera2d);
+}
+
+fn exit(
+    button_input: Res<ButtonInput<KeyCode>>,
+    mut app_exit_writer: MessageWriter<AppExit>
+) {
+    if button_input.just_pressed(KeyCode::Escape) {
+        app_exit_writer.write(AppExit::Success);
+    }
 }
