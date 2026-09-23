@@ -15,7 +15,7 @@ impl Plugin for ShapesPlugin {
 }
 
 #[derive(EnumCount, EnumIter)]
-pub enum ShapeList{
+pub enum ShapeType {
     Triangle,
     LineThree,
     LineThreePlusDot,
@@ -23,37 +23,56 @@ pub enum ShapeList{
     Diamond,
 }
 
-impl ShapeList{
-    pub fn shape_index(index: usize) -> ShapeList {
+impl ShapeType {
+    pub fn shape_index(index: usize) -> ShapeType {
         match index {
-            0 => ShapeList::Triangle,
-            1 => ShapeList::LineThree,
-            2 => ShapeList::LineThreePlusDot,
-            3 => ShapeList::LineFour,
-            4 => ShapeList::Diamond,
-            _ => ShapeList::Triangle,
+            0 => ShapeType::Triangle,
+            1 => ShapeType::LineThree,
+            2 => ShapeType::LineThreePlusDot,
+            3 => ShapeType::LineFour,
+            4 => ShapeType::Diamond,
+            _ => ShapeType::Triangle,
         }
     }
 }
 
 #[derive(Component)]
-pub struct Shape {
+pub struct ShapeIndicator {
     hexagons: Vec<HexCoordinates>,
     color: Color,
-    shape: ShapeList,
+    shape_type: ShapeType,
 }
 
-impl Shape {
-    pub fn new(shape: ShapeList, color: Color) -> Self {
-        let hexagons = match shape {
-            ShapeList::Triangle => vec![HexCoordinates{q:0, r:0}, HexCoordinates{q:1, r:-1}, HexCoordinates{q:1, r:0}],
-            ShapeList::LineThree => vec![HexCoordinates{q:0, r:0}, HexCoordinates{q:1, r:0}, HexCoordinates{q:2, r:0}],
-            ShapeList::LineThreePlusDot => vec![HexCoordinates{q:0, r:0}, HexCoordinates{q:1, r:0}, HexCoordinates{q:2, r:0}, HexCoordinates{q:1, r:-1}],
-            ShapeList::LineFour => vec![HexCoordinates{q:0, r:0}, HexCoordinates{q:1, r:0}, HexCoordinates{q:2, r:0}, HexCoordinates{q:3, r:0}],
-            ShapeList::Diamond => vec![HexCoordinates{q:0, r:0}, HexCoordinates{q:1, r:0}, HexCoordinates{q:1, r:-1}, HexCoordinates{q:2, r:-1}],
-        };
+impl ShapeIndicator {
+    fn get_hexagons(shape_type: &ShapeType) -> Vec<HexCoordinates> {
+        match shape_type {
+            ShapeType::Triangle => vec![HexCoordinates{q:0, r:0}, HexCoordinates{q:1, r:-1}, HexCoordinates{q:1, r:0}],
+            ShapeType::LineThree => vec![HexCoordinates{q:0, r:0}, HexCoordinates{q:1, r:0}, HexCoordinates{q:2, r:0}],
+            ShapeType::LineThreePlusDot => vec![HexCoordinates{q:0, r:0}, HexCoordinates{q:1, r:0}, HexCoordinates{q:2, r:0}, HexCoordinates{q:1, r:-1}],
+            ShapeType::LineFour => vec![HexCoordinates{q:0, r:0}, HexCoordinates{q:1, r:0}, HexCoordinates{q:2, r:0}, HexCoordinates{q:3, r:0}],
+            ShapeType::Diamond => vec![HexCoordinates{q:0, r:0}, HexCoordinates{q:1, r:0}, HexCoordinates{q:1, r:-1}, HexCoordinates{q:2, r:-1}],
+        }
+    }
+    pub fn new(shape_type: ShapeType, color: Color) -> Self {
+        let hexagons = Self::get_hexagons(&shape_type);
+        ShapeIndicator { hexagons, color, shape_type }
+    }
 
-        Shape { hexagons, color, shape }
+    fn rotate_cw(shape: Vec<HexCoordinates>) -> Vec<HexCoordinates> {
+        let mut new_shape = Vec::new();
+        for hexagon in shape {
+            let s = -hexagon.q - hexagon.r;
+            new_shape.push(HexCoordinates{q: -hexagon.r, r: -s});
+        }
+        new_shape
+    }
+
+    pub fn rotate_cw_n_times(shape_type: &ShapeType, times: i32) -> Vec<HexCoordinates> {
+        let mut new_shape = Self::get_hexagons(&shape_type);
+        for _ in 0..times {
+            new_shape = Self::rotate_cw(new_shape);
+        }
+        new_shape
     }
 }
 
@@ -65,7 +84,7 @@ fn draw_shapes(
     mut materials: ResMut<Assets<ColorMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
 ){
-    let shapes = &game.shapes;
+    let shapes = &game.shape_indicators;
     let size = HEXAGON_SIZE / 3.0;
     let y = -windows.single().unwrap().resolution.height() / 2.0 + HEXAGON_SIZE;
     let x = -windows.single().unwrap().resolution.width() / 2.0 + HEXAGON_SIZE / 2.0;
@@ -83,8 +102,8 @@ fn draw_shapes(
             ));
         }
 
-        shape_offset += match current_shape.shape {
-            ShapeList::LineFour | ShapeList::LineThree => size * 2.25,
+        shape_offset += match current_shape.shape_type {
+            ShapeType::LineFour | ShapeType::LineThree => size * 2.25,
             _ => size * 3.25
         };
     }
