@@ -85,12 +85,11 @@ pub fn new_game(seed: String) -> Game {
     coords.shuffle(&mut rng); // Gets the coords and then shuffles them in random order
     let mut placed_first_shape = 0;
     for i in 0..3 {
-        let current_shape_type = ShapeType::shape_index(i);
+        let current_shape_type = ShapeType::shape_index(shape_index[i]);
         let (mut min, mut max) = match current_shape_type {
             ShapeType::Triangle => (3, 6),
-            _ => (2, 4)
+            _ => (1, 3)
         };
-
         if i == 1 { // Logic for the second shape of the first color -> shape might not be on the grid
             if max - placed_first_shape <= 0 {continue}
             max = max - placed_first_shape;
@@ -124,20 +123,29 @@ pub fn new_game(seed: String) -> Game {
 
                             current_shape.push(cur_hexagon);
                             if k == rotated_shape.len() - 1 {
+                                let color = if i == 0 || i == 1 {
+                                    colors[0]
+                                } else {
+                                    colors[1]
+                                };
                                 for placed_hexagon in &current_shape {
-                                    let color = if i == 0 || i == 1 {
-                                        colors[0]
-                                    } else {
-                                        colors[1]
-                                    };
                                     puzzle.insert(*placed_hexagon, CellState::Filled(color));
                                 }
                                 n_placed = n_placed + 1;
-                                placed = true;
+                                placed = true
                             }
                         } else { break } // If invalid coord
                     }
                 }
+            }
+        }
+    }
+
+    let fill_coords: Vec<HexCoordinates> = puzzle.keys().cloned().collect();
+    for fillable in fill_coords {
+        if let Some(state) = puzzle.get(&fillable) {
+            if *state == CellState::Empty {
+                puzzle.insert(fillable, CellState::Filled(colors[2]));
             }
         }
     }
@@ -151,12 +159,15 @@ pub fn new_game(seed: String) -> Game {
             continue;
         }
         let hex_coords = HexCoordinates { q, r };
-        let new_indicator = if r <= 0 && s >= 0 {
-            NumberIndicator::new(vec![1, 2, 3, 1], hex_coords, colors[0])
-        } else if r >= 0 && q <= 0 {
-            NumberIndicator::new(vec![1, 2, 3, 1], hex_coords, colors[1])
-        } else {
-            NumberIndicator::new(vec![1, 2, 3], hex_coords, colors[2])
+        let new_indicator = if r <= 0 && s >= 0 { // Along q
+            let numbers = NumberIndicator::count_color_along_axis(&puzzle, 0, hex_coords, colors[0]);
+            NumberIndicator::new(numbers, hex_coords, colors[0], 0)
+        } else if r >= 0 && q <= 0 { // Along s
+            let numbers = NumberIndicator::count_color_along_axis(&puzzle, 1, hex_coords, colors[1]);
+            NumberIndicator::new(numbers, hex_coords, colors[1], 1)
+        } else { // Along r
+            let numbers = NumberIndicator::count_color_along_axis(&puzzle, 2, hex_coords, colors[2]);
+            NumberIndicator::new(numbers, hex_coords, colors[2], 2)
         };
         number_indicators.push(new_indicator)
     }
