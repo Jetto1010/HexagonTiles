@@ -1,7 +1,8 @@
 use std::f32::consts::PI;
 use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
-use crate::game::{CellState, Game, GridComponent};
+use crate::color_list::ColorList;
+use crate::game::{CellState, Game, GridComponent, ColoredHexagonEvent};
 use crate::hexagon::{flat_hex_to_pixel, HexCoordinates, HEXAGON_SIZE};
 
 use super::{GameState};
@@ -11,7 +12,8 @@ pub struct NumberPlugin;
 impl Plugin for NumberPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_systems(OnEnter(GameState::Game), draw_indicators);
+            .add_systems(OnEnter(GameState::Game), draw_indicators)
+            .add_observer(check_indicator_on_hexagon_updates);
     }
 }
 
@@ -19,15 +21,22 @@ impl Plugin for NumberPlugin {
 #[derive(Component)]
 pub struct NumberIndicator {
     numbers: Vec<i8>,
-    hex_coords: HexCoordinates, // Position
+    hexagon_coords: HexCoordinates, // Position
     color: Color,
     axis: u8, // 0 = Q, 1 = S, 2 = R
-    border: IndicatorBorder
+    pub border: IndicatorBorder
 }
+
+#[derive(Component, Clone, PartialEq, Debug, Copy)]
+pub enum IndicatorBorder {
+    Empty,
+    Filled(Color) // Whether the border is to display correct or wrong colors
+}
+
 
 impl NumberIndicator {
     pub fn new(numbers: Vec<i8>, hex_coords: HexCoordinates, color: Color, axis: u8) -> Self {
-        NumberIndicator { numbers, hex_coords, color, axis, border: IndicatorBorder::Empty }
+        NumberIndicator { numbers, hexagon_coords: hex_coords, color, axis, border: IndicatorBorder::Empty }
     }
 
     pub fn count_color_along_axis(cells: &HashMap<HexCoordinates, CellState>, axis: u8, start_coord: HexCoordinates, color: Color) -> Vec<i8> {
@@ -74,13 +83,6 @@ impl NumberIndicator {
     }
 }
 
-#[derive(Component)]
-pub enum IndicatorBorder {
-    Empty,
-    Filled(bool) // Whether the border is to display correct or wrong colors
-}
-
-
 fn draw_indicators(
     mut commands: Commands,
     game: Res<Game>,
@@ -88,7 +90,7 @@ fn draw_indicators(
     let number_indicator = &game.number_indicators;
     for indicator in number_indicator.iter() {
         let size = HEXAGON_SIZE / 2.0;
-        let (x, y) = flat_hex_to_pixel(indicator.hex_coords, size);
+        let (x, y) = flat_hex_to_pixel(indicator.hexagon_coords, size);
         let indicator_size = Vec2::new(40.0, 70.0);
         let rotate_in_radians = if indicator.axis == 0 {
             0.0
@@ -124,5 +126,26 @@ fn draw_indicators(
                 ));
             }
         });
+    }
+}
+
+fn check_indicator_on_hexagon_updates(
+    colored_hexagon_event: On<ColoredHexagonEvent>,
+    mut number_indicators: Query<&mut NumberIndicator>,
+    game: Res<Game>
+) {
+    let coords = colored_hexagon_event.hexagon_coords;
+    println!("Checking numbers");
+    for mut indicator in number_indicators.iter_mut() {
+        if (indicator.axis == 0 && indicator.hexagon_coords.q == coords.q) ||
+            (indicator.axis == 1 && -indicator.hexagon_coords.q - indicator.hexagon_coords.r == -coords.q - coords.r) ||
+            (indicator.axis == 2 && indicator.hexagon_coords.r == coords.r){ // Along q
+            let current_numbers = NumberIndicator::count_color_along_axis(&game.cells, indicator.axis, indicator.hexagon_coords, indicator.color);
+
+            if current_numbers == indicator.numbers {
+                indicator.border = IndicatorBorder::Filled(ColorList::color(&ColorList::GREEN));
+                println!("Correct")
+            }
+        }
     }
 }

@@ -3,7 +3,7 @@ use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
 use crate::color_list::ColorList;
 use crate::color_selection::{ColorPlugin, CurrentColor};
-use crate::numbers::{NumberPlugin, NumberIndicator};
+use crate::numbers::{NumberPlugin, NumberIndicator, IndicatorBorder};
 use crate::shapes::{ShapesPlugin, ShapeIndicator, ShapeType};
 use crate::hexagon::{HexCoordinates, HEXAGON_SIZE, hexagon_mesh, flat_hex_to_pixel};
 use rand::{RngExt, SeedableRng};
@@ -71,6 +71,10 @@ impl Game {
             let mut num = rng.random_range(0..ShapeType::COUNT);
             while shape_index.contains(&num) {
                 num = rng.random_range(0..ShapeType::COUNT);
+                // Make sure triangle and diamond shape is not together
+                while shape_index.len() == 1 && (num == 0 && shape_index[0] == 4 || num == 4 && shape_index[0] == 0) {
+                    num = rng.random_range(0..ShapeType::COUNT);
+                }
             }
             let color = if i == 0 || i == 1 {
                 colors[0]
@@ -85,26 +89,28 @@ impl Game {
         let mut puzzle = cells.clone();
         let mut coords: Vec<HexCoordinates> = puzzle.keys().cloned().collect();
         coords.shuffle(&mut rng); // Gets the coords and then shuffles them in random order
-        let mut placed_first_shape = 0;
+        let mut placed_shapes = 0;
         for i in 0..3 {
             let current_shape_type = ShapeType::shape_index(shape_index[i]);
             let (mut min, mut max) = match current_shape_type {
-                ShapeType::Triangle => (3, 6),
+                ShapeType::Triangle => (2, 5),
                 _ => (1, 3)
             };
             if i == 1 { // Logic for the second shape of the first color -> shape might not be on the grid
-                if max - placed_first_shape <= 0 { continue }
-                max = max - placed_first_shape;
-                min = min - placed_first_shape;
+                if max - placed_shapes <= 0 { continue }
+                max = 1;
+                min = -1;
             }
 
-            let n_to_place = rng.random_range(min..=max);
+            let mut n_to_place = rng.random_range(min..=max);
             if n_to_place <= 0 { continue } // Second shape
-            if i == 0 { placed_first_shape = n_to_place } // Number placed for the first color
+            placed_shapes = placed_shapes + n_to_place;
+            if i == 2 && placed_shapes <= 5 { n_to_place = 6 - placed_shapes } // Sets so there are at least 5 shapes
             let mut n_placed = 0;
             while n_placed < n_to_place && !coords.is_empty() {
                 let mut placed = false;
                 let Some(random_coord) = coords.pop() else { break };
+                if coords.is_empty() {println!("Ran out of coords to place shapes at index {}, with {} to place", i, n_to_place - n_placed)}
                 if let Some(state) = puzzle.get(&random_coord) {
                     if *state != CellState::Empty { continue } // Continue if filled
                     let mut rotation = [0, 1, 2, 3, 4, 5]; // Random rotation of place shape
@@ -174,7 +180,7 @@ impl Game {
             number_indicators.push(new_indicator)
         }
 
-        Game { cells, colors, shape_indicators, number_indicators }
+        Game { cells: puzzle, colors, shape_indicators, number_indicators }
     }
 }
 
@@ -229,6 +235,10 @@ fn draw_grid_background(
         ));
 }
 
+#[derive(Event)]
+pub struct ColoredHexagonEvent{
+    pub hexagon_coords: HexCoordinates,
+}
 
 
 fn click_hexagon(
@@ -237,6 +247,7 @@ fn click_hexagon(
     current_color: Res<CurrentColor>,
     hexagons: Query<(&HexCoordinates, &MeshMaterial2d<ColorMaterial>)>,
     mut materials: ResMut<Assets<ColorMaterial>>,
+    mut commands: Commands
 ) {
     if pressed.button != PointerButton::Primary {
         return;
@@ -260,6 +271,7 @@ fn click_hexagon(
         }; // Recolors the hexagon
         if let Some(mut material) = materials.get_mut(&mesh_material.0) {
             material.color = new_color;
+            commands.trigger(ColoredHexagonEvent{ hexagon_coords: *coord });
         }
     }
 }
@@ -269,13 +281,25 @@ fn reset_colors(
     mut grid: ResMut<Game>,
     hexagons: Query<(&HexCoordinates, &MeshMaterial2d<ColorMaterial>)>,
     mut materials: ResMut<Assets<ColorMaterial>>,
+    mut number_indicators: Query<&mut NumberIndicator>,
 ) {
     if button_input.just_pressed(KeyCode::KeyR) {
+        let mut changed_colors = false;
         for (coords, mesh_material) in &hexagons { // Loops over all hexagons in the gird
             grid.cells.insert(*coords, CellState::Empty); // Resets the all the colors
 
             if let Some(mut material) = materials.get_mut(&mesh_material.0) {
                 material.color = ColorList::color(&ColorList::WHITE);
+
+                if !changed_colors {
+                    changed_colors = true;
+                }
+            }
+        }
+
+        if changed_colors {
+            for mut indicator in number_indicators.iter_mut() {
+                indicator.border = IndicatorBorder::Empty;
             }
         }
     }
