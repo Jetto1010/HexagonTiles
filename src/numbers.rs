@@ -64,7 +64,13 @@ impl NumberIndicator {
         if numbers.is_empty() { // If no of indicators color
             numbers.push(0);
         }
-        numbers
+
+        if axis == 0 {
+            numbers
+        } else {
+            numbers.reverse();
+            numbers
+        }
     }
 }
 
@@ -109,7 +115,7 @@ fn draw_indicators(
         .with_children(|parent| {
             for i in 0..number_positions.len() {
                 let child_y = -number_positions[i] * indicator_size.y / 2.0;
-                let string = String::from(&indicator.numbers[i].abs().to_string());
+                let string = String::from(&indicator.numbers[i].to_string());
                 parent.spawn((
                     Text2d(string),
                     TextColor(Color::BLACK),

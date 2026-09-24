@@ -1,7 +1,7 @@
 use::bevy::prelude::*;
 use bevy::text::{EditableText, TextEditChange};
 use rand::random;
-use crate::game::new_game;
+use crate::game::Game;
 use super::GameState;
 
 const TEXT_COLOR: Color = Color::srgb(0.9, 0.9, 0.9);
@@ -173,7 +173,7 @@ fn start_game(
     seed: Res<Seed>,
     mut game_state: ResMut<NextState<GameState>>
 ) {
-    let new_grid = new_game(seed.0.to_string());
+    let new_grid = Game::new(seed.0.to_string());
     commands.insert_resource(new_grid);
     game_state.set(GameState::Game);
 }

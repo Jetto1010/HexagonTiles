@@ -13,7 +13,6 @@ pub enum ColorList {
 }
 
 impl ColorList {
-    #[allow(dead_code)]
     pub fn color(&self) -> Color {
         match self {
             ColorList::RED => Color::srgb(1.0, 0.0, 0.0),
