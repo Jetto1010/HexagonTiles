@@ -10,6 +10,7 @@ pub enum ColorList {
     BLUE,
     PURPLE,
     WHITE,
+    BLACK
 }
 
 impl ColorList {
@@ -17,10 +18,11 @@ impl ColorList {
         match self {
             ColorList::RED => Color::srgb(1.0, 0.0, 0.0),
             ColorList::YELLOW => Color::srgb(1.0, 1.0, 0.0),
-            ColorList::GREEN => Color::srgb(0.0, 0.0, 1.0),
+            ColorList::GREEN => Color::srgb(0.0, 1.0, 0.0),
             ColorList::BLUE => Color::srgb(0.0, 0.0, 1.0),
             ColorList::PURPLE => Color::srgb(1.0, 0.0, 1.0),
             ColorList::WHITE => Color::srgb(1.0, 1.0, 1.0),
+            ColorList::BLACK => Color::srgb(0.0, 0.0, 0.0),
         }
     }
 
@@ -31,7 +33,8 @@ impl ColorList {
             2 => Color::srgb(0.0, 1.0, 0.0),
             3 => Color::srgb(0.0, 0.0, 1.0),
             4 => Color::srgb(1.0, 0.0, 1.0),
-            _ => Color::srgb(1.0, 1.0, 1.0),
+            5 => Color::srgb(1.0, 1.0, 1.0),
+            _ => Color::srgb(0.0, 0.0, 0.0)
         }
     }
 }

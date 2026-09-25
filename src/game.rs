@@ -3,7 +3,7 @@ use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
 use crate::color_list::ColorList;
 use crate::color_selection::{ColorPlugin, CurrentColor};
-use crate::numbers::{NumberPlugin, NumberIndicator, IndicatorBorder};
+use crate::numbers::{NumberPlugin, NumberIndicator};
 use crate::shapes::{ShapesPlugin, ShapeIndicator, ShapeType};
 use crate::hexagon::{HexCoordinates, HEXAGON_SIZE, hexagon_mesh, flat_hex_to_pixel};
 use rand::{RngExt, SeedableRng};
@@ -56,10 +56,11 @@ impl Game {
         let mut rng = ChaCha8Rng::seed_from_u64(seahash::hash(seed.as_bytes()));
         let mut color_index = Vec::new();
         let mut colors = Vec::new();
+        let color_count = ColorList::COUNT - 2; // Exclude black and white
         for _ in 0..3 {
-            let mut num = rng.random_range(0..ColorList::COUNT - 1);
+            let mut num = rng.random_range(0..color_count);
             while color_index.contains(&num) {
-                num = rng.random_range(0..ColorList::COUNT - 1);
+                num = rng.random_range(0..color_count);
             }
             color_index.push(num);
             colors.push(ColorList::color_index(num));
@@ -299,7 +300,7 @@ fn reset_colors(
 
         if changed_colors {
             for mut indicator in number_indicators.iter_mut() {
-                indicator.border = IndicatorBorder::Empty;
+                // Set border
             }
         }
     }

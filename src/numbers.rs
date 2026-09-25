@@ -7,6 +7,9 @@ use crate::hexagon::{flat_hex_to_pixel, HexCoordinates, HEXAGON_SIZE};
 
 use super::{GameState};
 
+const INDICATOR_SIZE: Vec2 = Vec2::new(40.0, 70.0);
+
+
 pub struct NumberPlugin;
 
 impl Plugin for NumberPlugin {
@@ -24,19 +27,12 @@ pub struct NumberIndicator {
     hexagon_coords: HexCoordinates, // Position
     color: Color,
     axis: u8, // 0 = Q, 1 = S, 2 = R
-    pub border: IndicatorBorder
-}
-
-#[derive(Component, Clone, PartialEq, Debug, Copy)]
-pub enum IndicatorBorder {
-    Empty,
-    Filled(Color) // Whether the border is to display correct or wrong colors
 }
 
 
 impl NumberIndicator {
     pub fn new(numbers: Vec<i8>, hex_coords: HexCoordinates, color: Color, axis: u8) -> Self {
-        NumberIndicator { numbers, hexagon_coords: hex_coords, color, axis, border: IndicatorBorder::Empty }
+        NumberIndicator { numbers, hexagon_coords: hex_coords, color, axis}
     }
 
     pub fn count_color_along_axis(cells: &HashMap<HexCoordinates, CellState>, axis: u8, start_coord: HexCoordinates, color: Color) -> Vec<i8> {
@@ -81,6 +77,7 @@ impl NumberIndicator {
             numbers
         }
     }
+
 }
 
 fn draw_indicators(
@@ -89,9 +86,6 @@ fn draw_indicators(
 ){
     let number_indicator = &game.number_indicators;
     for indicator in number_indicator.iter() {
-        let size = HEXAGON_SIZE / 2.0;
-        let (x, y) = flat_hex_to_pixel(indicator.hexagon_coords, size);
-        let indicator_size = Vec2::new(40.0, 70.0);
         let rotate_in_radians = if indicator.axis == 0 {
             0.0
         } else if indicator.axis == 1 {
@@ -109,14 +103,10 @@ fn draw_indicators(
             vec![-0.67, -0.22, 0.22, 0.67]
         };
     commands
-        .spawn((
-            GridComponent,
-            Sprite::from_color(indicator.color, indicator_size),
-            Transform::from_xyz(x, -y, -11.0).with_rotation(Quat::from_rotation_z(rotate_in_radians)),
-        ))
+        .spawn(get_indicator_sprite(false, indicator.hexagon_coords, indicator.axis, indicator.color))
         .with_children(|parent| {
             for i in 0..number_positions.len() {
-                let child_y = -number_positions[i] * indicator_size.y / 2.0;
+                let child_y = -number_positions[i] * INDICATOR_SIZE.y / 2.0;
                 let string = String::from(&indicator.numbers[i].to_string());
                 parent.spawn((
                     Text2d(string),
@@ -131,21 +121,47 @@ fn draw_indicators(
 
 fn check_indicator_on_hexagon_updates(
     colored_hexagon_event: On<ColoredHexagonEvent>,
-    mut number_indicators: Query<&mut NumberIndicator>,
-    game: Res<Game>
+    mut game: ResMut<Game>,
+    mut commands: Commands,
 ) {
     let coords = colored_hexagon_event.hexagon_coords;
-    println!("Checking numbers");
-    for mut indicator in number_indicators.iter_mut() {
-        if (indicator.axis == 0 && indicator.hexagon_coords.q == coords.q) ||
-            (indicator.axis == 1 && -indicator.hexagon_coords.q - indicator.hexagon_coords.r == -coords.q - coords.r) ||
-            (indicator.axis == 2 && indicator.hexagon_coords.r == coords.r){ // Along q
-            let current_numbers = NumberIndicator::count_color_along_axis(&game.cells, indicator.axis, indicator.hexagon_coords, indicator.color);
+    let cells = game.cells.clone();
+    for indicator in game.number_indicators.iter_mut() {
+        if (indicator.axis == 0 && indicator.hexagon_coords.q == coords.q) || // Along q
+            (indicator.axis == 1 && -indicator.hexagon_coords.q - indicator.hexagon_coords.r == -coords.q - coords.r) || // Along s
+            (indicator.axis == 2 && indicator.hexagon_coords.r == coords.r){ // Along r
+            let current_numbers = NumberIndicator::count_color_along_axis(&cells, indicator.axis, indicator.hexagon_coords, indicator.color);
 
             if current_numbers == indicator.numbers {
-                indicator.border = IndicatorBorder::Filled(ColorList::color(&ColorList::GREEN));
-                println!("Correct")
+                println!("Correct at {}, {}", indicator.hexagon_coords.q, indicator.hexagon_coords.r);
+                commands
+                    .spawn(
+                        get_indicator_sprite(true, indicator.hexagon_coords, indicator.axis, ColorList::color(&ColorList::BLACK)),
+                    );
             }
         }
     }
+}
+
+fn get_indicator_sprite(border: bool, hexagon_coords: HexCoordinates, axis: u8, color: Color) -> impl Bundle {
+    let (x, y) = flat_hex_to_pixel(hexagon_coords, HEXAGON_SIZE / 2.0);
+    let size = if border {
+        Vec2::new(INDICATOR_SIZE.x + 8.0, INDICATOR_SIZE.y + 8.0)
+    } else { INDICATOR_SIZE };
+    let rotate_in_radians = if axis == 0 {
+        0.0
+    } else if axis == 1 {
+        -PI / 3.0
+    } else {
+        PI / 3.0
+    };
+    let z = if border {
+        -12.0
+    } else { -11.0 };
+    (
+        DespawnOnExit(GameState::Game),
+        GridComponent,
+        Sprite::from_color(color, size),
+        Transform::from_xyz(x, -y, z).with_rotation(Quat::from_rotation_z(rotate_in_radians)),
+    )
 }
