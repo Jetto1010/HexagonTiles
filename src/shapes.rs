@@ -21,6 +21,7 @@ pub enum ShapeType {
     LineThreePlusDot,
     LineFour,
     Diamond,
+    Curve,
 }
 
 impl ShapeType {
@@ -31,6 +32,7 @@ impl ShapeType {
             2 => ShapeType::LineThreePlusDot,
             3 => ShapeType::LineFour,
             4 => ShapeType::Diamond,
+            5 => ShapeType::Curve,
             _ => ShapeType::Triangle,
         }
     }
@@ -51,6 +53,7 @@ impl ShapeIndicator {
             ShapeType::LineThreePlusDot => vec![HexCoordinates{q:0, r:0}, HexCoordinates{q:1, r:0}, HexCoordinates{q:2, r:0}, HexCoordinates{q:1, r:-1}],
             ShapeType::LineFour => vec![HexCoordinates{q:0, r:0}, HexCoordinates{q:1, r:0}, HexCoordinates{q:2, r:0}, HexCoordinates{q:3, r:0}],
             ShapeType::Diamond => vec![HexCoordinates{q:0, r:0}, HexCoordinates{q:1, r:0}, HexCoordinates{q:1, r:-1}, HexCoordinates{q:2, r:-1}],
+            ShapeType::Curve => vec![HexCoordinates{q:0, r:0}, HexCoordinates{q:1, r:0}, HexCoordinates{q:2, r:-1}],
         }
     }
     pub fn new(shape_type: ShapeType, color: Color) -> Self {

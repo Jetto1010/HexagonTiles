@@ -146,7 +146,7 @@ fn check_indicator_on_hexagon_updates(
                 if indicator.border.is_none() {
                     let border = commands
                         .spawn(
-                            get_indicator_sprite(true, indicator.hexagon_coords, indicator.axis, ColorList::color(&ColorList::BLACK)),
+                            get_indicator_sprite(true, indicator.hexagon_coords, indicator.axis, ColorList::color(&ColorList::CORRECT)),
                         ).id();
                     indicator.border = Some(NumberIndicatorBorder(border));
                 }
@@ -154,6 +154,18 @@ fn check_indicator_on_hexagon_updates(
                 commands.entity(indicator_border.0).despawn();
             }
         }
+    }
+
+    let mut is_correct = true;
+    for indicator in game.number_indicators.iter() {
+        if indicator.border.is_none() {
+            is_correct = false;
+            break
+        }
+    }
+
+    if is_correct {
+        println!("All correct")
     }
 }
 

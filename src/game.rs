@@ -22,7 +22,7 @@ impl Plugin for GamePlugin {
         app
             .add_plugins((ColorPlugin, MeshPickingPlugin, NumberPlugin, ShapesPlugin))
             .add_systems(OnEnter(GameState::Game), (draw_grid, draw_grid_background))
-            .add_systems(Update, reset_colors.run_if(in_state(GameState::Game)));
+            .add_systems(Update, (reset_colors, exit_to_menu).run_if(in_state(GameState::Game)));
     }
 }
 
@@ -306,6 +306,15 @@ fn reset_colors(
                 NumberIndicator::remove_border(&mut indicator, &mut commands);
             }
         }
+    }
+}
+
+fn exit_to_menu(
+    button_input: Res<ButtonInput<KeyCode>>,
+    mut game_state: ResMut<NextState<GameState>>,
+) {
+    if button_input.just_pressed(KeyCode::Backspace) {
+        game_state.set(GameState::Menu)
     }
 }
 

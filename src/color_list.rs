@@ -10,7 +10,7 @@ pub enum ColorList {
     BLUE,
     PURPLE,
     WHITE,
-    BLACK
+    CORRECT,
 }
 
 impl ColorList {
@@ -22,7 +22,7 @@ impl ColorList {
             ColorList::BLUE => Color::srgb(0.0, 0.0, 1.0),
             ColorList::PURPLE => Color::srgb(1.0, 0.0, 1.0),
             ColorList::WHITE => Color::srgb(1.0, 1.0, 1.0),
-            ColorList::BLACK => Color::srgb(0.0, 0.0, 0.0),
+            ColorList::CORRECT => Color::srgb(0.0, 0.9, 0.423),
         }
     }
 
