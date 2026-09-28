@@ -95,6 +95,7 @@ fn draw_shapes(
             let (x_local, y_local) = pointy_hex_to_pixel(*hexagon, size);
             let hex = hexagon_mesh(size - 1.0);
             commands.spawn((
+                DespawnOnExit(GameState::Game),
                 GridComponent,
                 Mesh2d(meshes.add(hex)),
                 MeshMaterial2d(materials.add(current_shape.color)),

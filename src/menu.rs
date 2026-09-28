@@ -64,7 +64,6 @@ fn main_menu_setup(
                     height: percent(100),
                     ..default()
                 },
-                BackgroundColor(Color::srgb(0.6, 0.0, 0.0)),
                 children![(
                     Text::new("Hexagon Tiling"),
                     TextFont {

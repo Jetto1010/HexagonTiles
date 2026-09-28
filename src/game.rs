@@ -213,6 +213,7 @@ fn draw_grid(
         let (x, y) = flat_hex_to_pixel(*coord, size);
         let hex = hexagon_mesh(size - 5.0);
         commands.spawn((
+            DespawnOnExit(GameState::Game),
             GridComponent,
             Mesh2d(meshes.add(hex)),
             MeshMaterial2d(materials.add(color)),
@@ -227,8 +228,10 @@ fn draw_grid_background(
     mut materials: ResMut<Assets<ColorMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
+
     let background_hex = hexagon_mesh(GRID_SIZE + 10.0);
     commands.spawn((
+        DespawnOnExit(GameState::Game),
         GridComponent,
         Mesh2d(meshes.add(background_hex)),
         MeshMaterial2d(materials.add(Color::srgba(0.678, 0.847, 0.902, 0.5))),
@@ -282,7 +285,7 @@ fn reset_colors(
     mut grid: ResMut<Game>,
     hexagons: Query<(&HexCoordinates, &MeshMaterial2d<ColorMaterial>)>,
     mut materials: ResMut<Assets<ColorMaterial>>,
-    mut number_indicators: Query<&mut NumberIndicator>,
+    mut commands: Commands,
 ) {
     if button_input.just_pressed(KeyCode::KeyR) {
         let mut changed_colors = false;
@@ -299,8 +302,8 @@ fn reset_colors(
         }
 
         if changed_colors {
-            for mut indicator in number_indicators.iter_mut() {
-                // Set border
+            for mut indicator in grid.number_indicators.iter_mut() {
+                NumberIndicator::remove_border(&mut indicator, &mut commands);
             }
         }
     }

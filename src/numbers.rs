@@ -27,12 +27,16 @@ pub struct NumberIndicator {
     hexagon_coords: HexCoordinates, // Position
     color: Color,
     axis: u8, // 0 = Q, 1 = S, 2 = R
+    pub border: Option<NumberIndicatorBorder>
 }
+
+#[derive(Component)]
+pub struct NumberIndicatorBorder(pub Entity);
 
 
 impl NumberIndicator {
     pub fn new(numbers: Vec<i8>, hex_coords: HexCoordinates, color: Color, axis: u8) -> Self {
-        NumberIndicator { numbers, hexagon_coords: hex_coords, color, axis}
+        NumberIndicator { numbers, hexagon_coords: hex_coords, color, axis, border: None}
     }
 
     pub fn count_color_along_axis(cells: &HashMap<HexCoordinates, CellState>, axis: u8, start_coord: HexCoordinates, color: Color) -> Vec<i8> {
@@ -78,6 +82,12 @@ impl NumberIndicator {
         }
     }
 
+    pub fn remove_border(number_indicator: &mut NumberIndicator, commands: &mut Commands) {
+        if let Some(border) = number_indicator.border.take() {
+            commands.entity(border.0).despawn();
+            number_indicator.border = None;
+        }
+    }
 }
 
 fn draw_indicators(
@@ -133,11 +143,15 @@ fn check_indicator_on_hexagon_updates(
             let current_numbers = NumberIndicator::count_color_along_axis(&cells, indicator.axis, indicator.hexagon_coords, indicator.color);
 
             if current_numbers == indicator.numbers {
-                println!("Correct at {}, {}", indicator.hexagon_coords.q, indicator.hexagon_coords.r);
-                commands
-                    .spawn(
-                        get_indicator_sprite(true, indicator.hexagon_coords, indicator.axis, ColorList::color(&ColorList::BLACK)),
-                    );
+                if indicator.border.is_none() {
+                    let border = commands
+                        .spawn(
+                            get_indicator_sprite(true, indicator.hexagon_coords, indicator.axis, ColorList::color(&ColorList::BLACK)),
+                        ).id();
+                    indicator.border = Some(NumberIndicatorBorder(border));
+                }
+            } else if let Some(indicator_border) = indicator.border.take() {
+                commands.entity(indicator_border.0).despawn();
             }
         }
     }

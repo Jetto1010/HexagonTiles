@@ -22,15 +22,14 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .init_state::<GameState>()
         .add_systems(Startup, setup)
+        .insert_resource(ClearColor(Color::srgb(0.0, 0.0, 0.0)))
         .add_plugins((menu_plugin, GamePlugin))
         .add_systems(Update, exit)
         .run();
 }
 
 
-fn setup(mut commands: Commands) {
-    commands.spawn(Camera2d);
-}
+fn setup(mut commands: Commands) { commands.spawn(Camera2d::default()); }
 
 fn exit(
     button_input: Res<ButtonInput<KeyCode>>,

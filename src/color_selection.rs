@@ -54,6 +54,7 @@ fn draw_color_indicators(
         if i != 3 { // Takes one of three colors of the grid
             let x = windows.single().unwrap().resolution.width() / 2.0 - size * 2.0 * (4 - i) as f32;
             commands.spawn((
+                DespawnOnExit(GameState::Game),
                 GridComponent,
                 Mesh2d(meshes.add(hex)),
                 MeshMaterial2d(materials.add(game.colors[i])),
@@ -63,6 +64,7 @@ fn draw_color_indicators(
         } else {  // This is used to indicate which color is selected
             let x = -windows.single().unwrap().resolution.width() / 2.0 + size * 2.0;
             commands.spawn((
+                DespawnOnExit(GameState::Game),
                 GridComponent,
                 Mesh2d(meshes.add(hex)),
                 MeshMaterial2d(materials.add(current_color.color)),
