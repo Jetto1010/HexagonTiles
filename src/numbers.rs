@@ -2,7 +2,7 @@ use std::f32::consts::PI;
 use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
 use crate::color_list::ColorList;
-use crate::game::{CellState, Game, GridComponent, ColoredHexagonEvent};
+use crate::game::{CellState, Game, GridComponent, ColoredHexagonEvent, PuzzleCorrectEvent};
 use crate::hexagon::{flat_hex_to_pixel, HexCoordinates, HEXAGON_SIZE};
 
 use super::{GameState};
@@ -165,7 +165,7 @@ fn check_indicator_on_hexagon_updates(
     }
 
     if is_correct {
-        println!("All correct")
+        commands.trigger(PuzzleCorrectEvent);
     }
 }
 

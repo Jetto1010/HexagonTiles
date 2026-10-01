@@ -1,6 +1,7 @@
 use std::f32::consts::PI;
 use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
+use bevy::ecs::observer::ObservedBy;
 use crate::color_list::ColorList;
 use crate::color_selection::{ColorPlugin, CurrentColor};
 use crate::numbers::{NumberPlugin, NumberIndicator};
@@ -10,6 +11,7 @@ use rand::{RngExt, SeedableRng};
 use rand::rngs::ChaCha8Rng;
 use rand::seq::SliceRandom;
 use strum::{EnumCount};
+
 
 use super::{GameState};
 
@@ -22,7 +24,8 @@ impl Plugin for GamePlugin {
         app
             .add_plugins((ColorPlugin, MeshPickingPlugin, NumberPlugin, ShapesPlugin))
             .add_systems(OnEnter(GameState::Game), (draw_grid, draw_grid_background))
-            .add_systems(Update, (reset_colors, exit_to_menu).run_if(in_state(GameState::Game)));
+            .add_systems(Update, (reset_colors, exit_to_menu).run_if(in_state(GameState::Game)))
+            .add_observer(puzzle_correct_handle.run_if(in_state(GameState::Game)));
     }
 }
 
@@ -313,8 +316,23 @@ fn exit_to_menu(
     button_input: Res<ButtonInput<KeyCode>>,
     mut game_state: ResMut<NextState<GameState>>,
 ) {
-    if button_input.just_pressed(KeyCode::Backspace) {
+    if button_input.just_pressed(KeyCode::Escape) {
         game_state.set(GameState::Menu)
     }
 }
 
+#[derive(Event)]
+pub struct PuzzleCorrectEvent;
+
+fn puzzle_correct_handle (
+    _ : On<PuzzleCorrectEvent>,
+    mut commands: Commands,
+    observers: Query<&ObservedBy, With<GridComponent>>,
+) {
+    for obs in observers.iter() {
+        for &observer in obs.get() {
+            commands.entity(observer).despawn();
+        }
+    }
+    println!("All correct")
+}

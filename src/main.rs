@@ -24,7 +24,7 @@ fn main() {
         .add_systems(Startup, setup)
         .insert_resource(ClearColor(Color::srgb(0.0, 0.0, 0.0)))
         .add_plugins((menu_plugin, GamePlugin))
-        .add_systems(Update, exit)
+        .add_systems(Update, exit.run_if(in_state(GameState::Menu)))
         .run();
 }
 
