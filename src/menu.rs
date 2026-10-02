@@ -4,8 +4,8 @@ use rand::random;
 use crate::game::Game;
 use super::GameState;
 
-const TEXT_COLOR: Color = Color::srgb(0.9, 0.9, 0.9);
-const BUTTON_COLOR: Color = Color::srgb(0.15, 0.15, 0.15);
+pub const TEXT_COLOR: Color = Color::srgb(0.9, 0.9, 0.9);
+pub const BUTTON_COLOR: Color = Color::srgb(0.15, 0.15, 0.15);
 
 // https://bevy.org/examples/games/game-menu/
 pub fn menu_plugin(app: &mut App) {

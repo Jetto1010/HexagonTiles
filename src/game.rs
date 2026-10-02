@@ -7,12 +7,11 @@ use crate::color_selection::{ColorPlugin, CurrentColor};
 use crate::numbers::{NumberPlugin, NumberIndicator};
 use crate::shapes::{ShapesPlugin, ShapeIndicator, ShapeType};
 use crate::hexagon::{HexCoordinates, HEXAGON_SIZE, hexagon_mesh, flat_hex_to_pixel};
+use crate::menu::{BUTTON_COLOR, TEXT_COLOR};
 use rand::{RngExt, SeedableRng};
 use rand::rngs::ChaCha8Rng;
 use rand::seq::SliceRandom;
 use strum::{EnumCount};
-
-
 use super::{GameState};
 
 pub const GRID_SIZE: f32 = 250.0; // Pointy-top -> size from center to top
@@ -24,7 +23,7 @@ impl Plugin for GamePlugin {
         app
             .add_plugins((ColorPlugin, MeshPickingPlugin, NumberPlugin, ShapesPlugin))
             .add_systems(OnEnter(GameState::Game), (draw_grid, draw_grid_background))
-            .add_systems(Update, (reset_colors, exit_to_menu).run_if(in_state(GameState::Game)))
+            .add_systems(Update, (reset_colors, exit_to_menu, click_complete_buttons).run_if(in_state(GameState::Game)))
             .add_observer(puzzle_correct_handle.run_if(in_state(GameState::Game)));
     }
 }
@@ -151,6 +150,7 @@ impl Game {
                     }
                 }
             }
+
         }
 
         let fill_coords: Vec<HexCoordinates> = puzzle.keys().cloned().collect();
@@ -184,7 +184,7 @@ impl Game {
             number_indicators.push(new_indicator)
         }
 
-        Game { cells: puzzle, colors, shape_indicators, number_indicators }
+        Game { cells, colors, shape_indicators, number_indicators }
     }
 }
 
@@ -324,6 +324,12 @@ fn exit_to_menu(
 #[derive(Event)]
 pub struct PuzzleCorrectEvent;
 
+#[derive(Component)]
+enum PuzzleCompleteButtonActions {
+    New,
+    Quit
+}
+
 fn puzzle_correct_handle (
     _ : On<PuzzleCorrectEvent>,
     mut commands: Commands,
@@ -334,5 +340,90 @@ fn puzzle_correct_handle (
             commands.entity(observer).despawn();
         }
     }
-    println!("All correct")
+    println!("All correct");
+
+    let button_nodes = Node {
+        width: px(350),
+        height: px(80),
+        margin: UiRect::all(px(20)),
+        justify_content: JustifyContent::Center,
+        align_items: AlignItems::Center,
+        ..default()
+    };
+
+    let button_font = TextFont {
+        font_size: FontSize::Px(33.0),
+        ..default()
+    };
+
+    commands.spawn((
+        DespawnOnExit(GameState::Game),
+        Node {
+            width: percent(100),
+            height: percent(100),
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            ..default()
+        },children![(
+            Node {
+                width: percent(75),
+                height: percent(50),
+                    flex_direction: FlexDirection::Column,
+                    align_items: AlignItems::Center,
+                ..default()
+            },
+            BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.9)),
+            children![(
+                Text::new("Puzzle Complete"),
+                TextFont {
+                    font_size: FontSize::Px(67.0),
+                    ..default()
+                },
+                TextColor(TEXT_COLOR),
+                Node {
+                    margin: UiRect::px(0.0, 20.0, 0.0, 0.0),
+                    ..default()
+                }
+            ),(
+                Button,
+                button_nodes.clone(),
+                BackgroundColor(BUTTON_COLOR),
+                PuzzleCompleteButtonActions::New,
+                children![(
+                    Text::new("New Game"),
+                    button_font.clone(),
+                    TextColor(TEXT_COLOR)
+                )]
+            ), (
+                Button,
+                button_nodes,
+                BackgroundColor(BUTTON_COLOR),
+                PuzzleCompleteButtonActions::Quit,
+                children![(
+                    Text::new("Quit to desktop"),
+                    button_font,
+                    TextColor(TEXT_COLOR)
+                )]
+            )]
+        )]
+    ));
+}
+
+fn click_complete_buttons(
+    interaction_query: Query<(&Interaction, &PuzzleCompleteButtonActions), (Changed<Interaction>, With<Button>)>,
+    mut app_exit_writer: MessageWriter<AppExit>,
+    mut game_state: ResMut<NextState<GameState>>,
+) {
+    for (interaction, button) in &interaction_query {
+        if *interaction == Interaction::Pressed {
+            match button {
+                PuzzleCompleteButtonActions:: Quit=> {
+                    app_exit_writer.write(AppExit::Success);
+                }
+                PuzzleCompleteButtonActions::New => {
+                    game_state.set(GameState::Menu);
+                }
+            }
+        }
+    }
 }

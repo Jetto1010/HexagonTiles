@@ -165,6 +165,7 @@ fn check_indicator_on_hexagon_updates(
     }
 
     if is_correct {
+        // Need to check shapes
         commands.trigger(PuzzleCorrectEvent);
     }
 }
