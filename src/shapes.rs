@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use strum_macros::{EnumCount, EnumIter};
 use crate::game::{Game, GridComponent};
 use crate::hexagon::{HexCoordinates, HEXAGON_SIZE, hexagon_mesh, pointy_hex_to_pixel};
-
+use crate::shapes::ShapeType::*;
 use super::{GameState};
 
 pub struct ShapesPlugin;
@@ -14,7 +14,7 @@ impl Plugin for ShapesPlugin {
     }
 }
 
-#[derive(EnumCount, EnumIter)]
+#[derive(EnumCount, EnumIter, Copy, Clone, Debug, PartialEq)]
 pub enum ShapeType {
     Triangle,
     LineThree,
@@ -27,16 +27,32 @@ pub enum ShapeType {
 impl ShapeType {
     pub fn shape_index(index: usize) -> ShapeType {
         match index {
-            0 => ShapeType::Triangle,
-            1 => ShapeType::LineThree,
-            2 => ShapeType::LineThreePlusDot,
-            3 => ShapeType::LineFour,
-            4 => ShapeType::Diamond,
-            5 => ShapeType::Curve,
-            _ => ShapeType::Triangle,
+            0 => Triangle,
+            1 => LineThree,
+            2 => LineThreePlusDot,
+            3 => LineFour,
+            4 => Diamond,
+            5 => Curve,
+            _ => Triangle,
+        }
+    }
+
+    pub fn shape_size(&self) -> usize {
+        match self {
+            Triangle => 3,
+            LineThree => 3,
+            Curve => 3,
+            _ => 4
         }
     }
 }
+
+pub const SHAPE_PAIRS: &[(ShapeType, ShapeType)] = &[
+    (Triangle, LineThree),
+    (LineThree, LineFour),
+    (LineThree, LineThreePlusDot),
+    (LineFour, LineThreePlusDot),
+];
 
 #[derive(Component)]
 pub struct ShapeIndicator {
@@ -48,14 +64,15 @@ pub struct ShapeIndicator {
 impl ShapeIndicator {
     fn get_hexagons(shape_type: &ShapeType) -> Vec<HexCoordinates> {
         match shape_type {
-            ShapeType::Triangle => vec![HexCoordinates{q:0, r:0}, HexCoordinates{q:1, r:-1}, HexCoordinates{q:1, r:0}],
-            ShapeType::LineThree => vec![HexCoordinates{q:0, r:0}, HexCoordinates{q:1, r:0}, HexCoordinates{q:2, r:0}],
-            ShapeType::LineThreePlusDot => vec![HexCoordinates{q:0, r:0}, HexCoordinates{q:1, r:0}, HexCoordinates{q:2, r:0}, HexCoordinates{q:1, r:-1}],
-            ShapeType::LineFour => vec![HexCoordinates{q:0, r:0}, HexCoordinates{q:1, r:0}, HexCoordinates{q:2, r:0}, HexCoordinates{q:3, r:0}],
-            ShapeType::Diamond => vec![HexCoordinates{q:0, r:0}, HexCoordinates{q:1, r:0}, HexCoordinates{q:1, r:-1}, HexCoordinates{q:2, r:-1}],
-            ShapeType::Curve => vec![HexCoordinates{q:0, r:0}, HexCoordinates{q:1, r:0}, HexCoordinates{q:2, r:-1}],
+            Triangle => vec![HexCoordinates{q:0, r:0}, HexCoordinates{q:1, r:-1}, HexCoordinates{q:1, r:0}],
+            LineThree => vec![HexCoordinates{q:0, r:0}, HexCoordinates{q:1, r:0}, HexCoordinates{q:2, r:0}],
+            LineThreePlusDot => vec![HexCoordinates{q:0, r:0}, HexCoordinates{q:1, r:0}, HexCoordinates{q:2, r:0}, HexCoordinates{q:1, r:-1}],
+            LineFour => vec![HexCoordinates{q:0, r:0}, HexCoordinates{q:1, r:0}, HexCoordinates{q:2, r:0}, HexCoordinates{q:3, r:0}],
+            Diamond => vec![HexCoordinates{q:0, r:0}, HexCoordinates{q:1, r:0}, HexCoordinates{q:1, r:-1}, HexCoordinates{q:2, r:-1}],
+            Curve => vec![HexCoordinates{q:0, r:0}, HexCoordinates{q:1, r:0}, HexCoordinates{q:2, r:-1}],
         }
     }
+
     pub fn new(shape_type: ShapeType, color: Color) -> Self {
         let hexagons = Self::get_hexagons(&shape_type);
         ShapeIndicator { hexagons, color, shape_type }
@@ -107,7 +124,7 @@ fn draw_shapes(
         }
 
         shape_offset += match current_shape.shape_type {
-            ShapeType::LineFour | ShapeType::LineThree => size * 2.25,
+            LineFour | LineThree => size * 2.25,
             _ => size * 3.25
         };
     }

@@ -5,7 +5,7 @@ use bevy::ecs::observer::ObservedBy;
 use crate::color_list::ColorList;
 use crate::color_selection::{ColorPlugin, CurrentColor};
 use crate::numbers::{NumberPlugin, NumberIndicator};
-use crate::shapes::{ShapesPlugin, ShapeIndicator, ShapeType};
+use crate::shapes::{ShapesPlugin, ShapeIndicator, ShapeType, SHAPE_PAIRS};
 use crate::hexagon::{HexCoordinates, HEXAGON_SIZE, hexagon_mesh, flat_hex_to_pixel};
 use crate::menu::{BUTTON_COLOR, TEXT_COLOR};
 use rand::{RngExt, SeedableRng};
@@ -16,6 +16,7 @@ use super::{GameState};
 
 pub const GRID_SIZE: f32 = 250.0; // Pointy-top -> size from center to top
 pub const HEXAGONS_FROM_CENTER: f32 = 3.0;
+const CHANCE_SHAPE_PAIR: f64 = 0.6;
 
 pub struct GamePlugin;
 impl Plugin for GamePlugin {
@@ -68,89 +69,62 @@ impl Game {
             colors.push(ColorList::color_index(num));
         }
 
-        let mut shape_index = Vec::new();
-        let mut shape_indicators = Vec::new();
-        for i in 0..3 {
-            let mut num = rng.random_range(0..ShapeType::COUNT);
-            while shape_index.contains(&num) {
-                num = rng.random_range(0..ShapeType::COUNT);
-                // Make sure triangle and diamond shape is not together
-                while shape_index.len() == 1 && (num == 0 && shape_index[0] == 4 || num == 4 && shape_index[0] == 0) {
-                    num = rng.random_range(0..ShapeType::COUNT);
-                }
-            }
-            let color = if i == 0 || i == 1 {
-                colors[0]
-            } else {
-                colors[1]
-            };
-            shape_index.push(num);
-            shape_indicators.push(ShapeIndicator::new(ShapeType::shape_index(num), color));
-        }
-
         // Placing the shape in the puzzle
         let mut puzzle = cells.clone();
         let mut coords: Vec<HexCoordinates> = puzzle.keys().cloned().collect();
+        let mut shapes: Vec<ShapeType> = Vec::new();
         coords.shuffle(&mut rng); // Gets the coords and then shuffles them in random order
-        let mut placed_shapes = 0;
-        for i in 0..3 {
-            let current_shape_type = ShapeType::shape_index(shape_index[i]);
-            let (mut min, mut max) = match current_shape_type {
-                ShapeType::Triangle => (2, 5),
-                _ => (1, 3)
-            };
-            if i == 1 { // Logic for the second shape of the first color -> shape might not be on the grid
-                if max - placed_shapes <= 0 { continue }
-                max = 1;
-                min = -1;
-            }
+        let use_shape_pair = rng.random_bool(CHANCE_SHAPE_PAIR);
+        for i in 0..2 {
+            if i == 0 && use_shape_pair { // If first shape and going to be two shapes
+                let n_shape_pairs = SHAPE_PAIRS.len();
+                let shape_pair = &SHAPE_PAIRS[rng.random_range(0..n_shape_pairs)];
+                shapes.push(shape_pair.0);
+                shapes.push(shape_pair.1);
+                let min = 3;
+                let max = match shape_pair.0 {
+                    ShapeType::Triangle => 5,
+                    _ => 4
+                };
+                let total_shapes_to_place = rng.random_range(min..=max);
+                let first_shapes_to_place = rng.random_range(0..=total_shapes_to_place);
 
-            let mut n_to_place = rng.random_range(min..=max);
-            if n_to_place <= 0 { continue } // Second shape
-            placed_shapes = placed_shapes + n_to_place;
-            if i == 2 && placed_shapes <= 5 { n_to_place = 6 - placed_shapes } // Sets so there are at least 5 shapes
-            let mut n_placed = 0;
-            while n_placed < n_to_place && !coords.is_empty() {
-                let mut placed = false;
-                let Some(random_coord) = coords.pop() else { break };
-                if coords.is_empty() {println!("Ran out of coords to place shapes at index {}, with {} to place", i, n_to_place - n_placed)}
-                if let Some(state) = puzzle.get(&random_coord) {
-                    if *state != CellState::Empty { continue } // Continue if filled
-                    let mut rotation = [0, 1, 2, 3, 4, 5]; // Random rotation of place shape
-                    rotation.shuffle(&mut rng);
+                let randomized_coords: Vec<HexCoordinates> = puzzle.keys().cloned().collect();
+                let number_placed_first = place_shape(&mut puzzle, randomized_coords, shape_pair.0, first_shapes_to_place, &mut rng, colors[0]);
 
-                    for j in rotation {
-                        if placed { break }
-
-                        let rotated_shape = ShapeIndicator::rotate_cw_n_times(&current_shape_type, j);
-                        let mut current_shape = vec!(random_coord);
-                        for k in 1..rotated_shape.len() {
-                            if placed { break }
-
-                            let (q, r) = (random_coord.q + rotated_shape[k].q, random_coord.r + rotated_shape[k].r);
-                            let cur_hexagon = HexCoordinates { q, r };
-                            if let Some(new_state) = puzzle.get(&cur_hexagon) {
-                                if *new_state != CellState::Empty { break }
-
-                                current_shape.push(cur_hexagon);
-                                if k == rotated_shape.len() - 1 {
-                                    let color = if i == 0 || i == 1 {
-                                        colors[0]
-                                    } else {
-                                        colors[1]
-                                    };
-                                    for placed_hexagon in &current_shape {
-                                        puzzle.insert(*placed_hexagon, CellState::Filled(color));
-                                    }
-                                    n_placed = n_placed + 1;
-                                    placed = true
-                                }
-                            } else { break } // If invalid coord
-                        }
-                    }
+                if total_shapes_to_place - number_placed_first > 0 {
+                    let randomized_coords: Vec<HexCoordinates> = puzzle.keys().cloned().collect();
+                    place_shape(&mut puzzle, randomized_coords, shape_pair.1, total_shapes_to_place - number_placed_first, &mut rng, colors[0]);
                 }
-            }
+            } else {
+                let mut shape_type_numbers = Vec::new();
+                for i in 0..ShapeType::COUNT {shape_type_numbers.push(i);}
+                shape_type_numbers.shuffle(&mut rng);
 
+                let shape = shape_type_numbers.into_iter().map(ShapeType::shape_index).find(|s| !shapes.contains(s)).expect("guaranteed shape");
+                shapes.push(shape);
+                let min = 2;
+                let max = match shape {
+                    ShapeType::Triangle => 5,
+                    ShapeType::Curve => 5,
+                    ShapeType::LineThree => 4,
+                    ShapeType::Diamond => 4,
+                    _ => 3
+                };
+                let total_shapes_to_place = rng.random_range(min..=max);
+                let randomized_coords: Vec<HexCoordinates> = puzzle.keys().cloned().collect();
+                place_shape(&mut puzzle, randomized_coords, shape, total_shapes_to_place, &mut rng, colors[i]);
+            }
+        }
+
+
+        let mut shape_indicators = Vec::new();
+        shape_indicators.push(ShapeIndicator::new(shapes[0], colors[0]));
+        if shapes.len() == 2 {
+            shape_indicators.push(ShapeIndicator::new(shapes[1], colors[1]));
+        } else {
+            shape_indicators.push(ShapeIndicator::new(shapes[1], colors[0]));
+            shape_indicators.push(ShapeIndicator::new(shapes[2], colors[1]));
         }
 
         let fill_coords: Vec<HexCoordinates> = puzzle.keys().cloned().collect();
@@ -426,4 +400,50 @@ fn click_complete_buttons(
             }
         }
     }
+}
+
+fn place_shape(
+    puzzle: &mut HashMap<HexCoordinates, CellState>,
+    mut randomized_coords: Vec<HexCoordinates>,
+    shape_type: ShapeType,
+    number_to_place: i32,
+    rng: &mut ChaCha8Rng,
+    color: Color,
+) -> i32 {
+    let mut number_placed = 0;
+
+    while number_placed < number_to_place && !randomized_coords.is_empty() {
+        let Some(random_coord) = randomized_coords.pop() else { break };
+
+        if let Some(random_coord_state) = puzzle.get(&random_coord) {
+            if *random_coord_state != CellState::Empty {continue}; // Continue if cells is filled
+            let mut rotations = [0, 1, 2, 3, 4, 5]; // Random rotation of place shape
+            rotations.shuffle(rng); // Shuffle the rotation to get random rotations
+
+            for rotation in rotations {
+                let rotated_shape = ShapeIndicator::rotate_cw_n_times(&shape_type, rotation);
+                let mut current_shape = vec!(random_coord); // Start of the shape we try to place
+
+                for i in 1..rotated_shape.len() {
+                    let (q, r) = (random_coord.q + rotated_shape[i].q, random_coord.r + rotated_shape[i].r);
+                    let current_hexagon = HexCoordinates{ q, r };
+                    if let Some(current_hexagon_state) = puzzle.get(&current_hexagon) {
+                        if *current_hexagon_state != CellState::Empty { break }; // Current rotation is invalid
+
+                        current_shape.push(current_hexagon); // Builds the shape in the puzzle
+                    }
+                }
+
+                if current_shape.len() == ShapeType::shape_size(&shape_type) {
+                    for hexagon in current_shape {
+                        puzzle.insert(hexagon, CellState::Filled(color));
+                    }
+                    number_placed = number_placed + 1;
+                    break; // Stop trying rotations of this place attempt
+                }
+            }
+        }
+    }
+
+    number_placed
 }
