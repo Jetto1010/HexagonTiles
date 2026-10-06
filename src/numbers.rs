@@ -92,10 +92,9 @@ impl NumberIndicator {
 
 fn draw_indicators(
     mut commands: Commands,
-    game: Res<Game>,
+    mut game: ResMut<Game>,
 ){
-    let number_indicator = &game.number_indicators;
-    for indicator in number_indicator.iter() {
+    for indicator in game.number_indicators.iter_mut() {
         let rotate_in_radians = if indicator.axis == 0 {
             0.0
         } else if indicator.axis == 1 {
@@ -126,6 +125,14 @@ fn draw_indicators(
                 ));
             }
         });
+
+        if indicator.numbers == vec![0] {
+            let border = commands
+                .spawn(
+                    get_indicator_sprite(true, indicator.hexagon_coords, indicator.axis, ColorList::color(&ColorList::CORRECT)),
+                ).id();
+            indicator.border = Some(NumberIndicatorBorder(border));
+        }
     }
 }
 
