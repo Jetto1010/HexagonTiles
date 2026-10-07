@@ -3,7 +3,7 @@ use bevy::asset::RenderAssetUsages;
 use bevy::math::ops::sqrt;
 use bevy::mesh::{Indices, PrimitiveTopology};
 use bevy::prelude::*;
-use crate::game::{GRID_SIZE, HEXAGONS_FROM_CENTER};
+use crate::game::{GRID_SIZE, HEXAGONS_FROM_CENTER, RADIUS};
 
 pub const HEXAGON_SIZE: f32 = GRID_SIZE / HEXAGONS_FROM_CENTER; // Flat-top -> size from center to right edge
 
@@ -12,6 +12,22 @@ pub const HEXAGON_SIZE: f32 = GRID_SIZE / HEXAGONS_FROM_CENTER; // Flat-top -> s
 pub struct HexCoordinates {
     pub q: i8,
     pub r: i8,
+}
+
+const DIRECTIONS: [(i8, i8); 6] = [(1, 0), (1, -1), (0, -1), (-1, 0), (-1, 1), (0, 1)];
+
+impl HexCoordinates {
+    pub fn get_neighbours(self) -> Vec<HexCoordinates> {
+        let mut neighbors = Vec::new();
+        for direction in DIRECTIONS.iter() {
+            let (q, r) = (self.q + direction.0, self.r + direction.1);
+            if !(q.abs().max(r.abs()).max((-q -r).abs()) >= RADIUS) {
+                neighbors.push(HexCoordinates { q, r });
+            }
+        }
+
+        neighbors
+    }
 }
 
 pub fn hexagon_mesh(size: f32) -> Mesh {

@@ -177,9 +177,9 @@ fn check_indicator_on_hexagon_updates(
     }
 }
 
-fn get_indicator_sprite(border: bool, hexagon_coords: HexCoordinates, axis: u8, color: Color) -> impl Bundle {
+fn get_indicator_sprite(is_border: bool, hexagon_coords: HexCoordinates, axis: u8, color: Color) -> impl Bundle {
     let (x, y) = flat_hex_to_pixel(hexagon_coords, HEXAGON_SIZE / 2.0);
-    let size = if border {
+    let size = if is_border {
         Vec2::new(INDICATOR_SIZE.x + 8.0, INDICATOR_SIZE.y + 8.0)
     } else { INDICATOR_SIZE };
     let rotate_in_radians = if axis == 0 {
@@ -189,7 +189,7 @@ fn get_indicator_sprite(border: bool, hexagon_coords: HexCoordinates, axis: u8, 
     } else {
         PI / 3.0
     };
-    let z = if border {
+    let z = if is_border {
         -12.0
     } else { -11.0 };
     (

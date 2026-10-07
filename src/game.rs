@@ -16,6 +16,7 @@ use super::{GameState};
 
 pub const GRID_SIZE: f32 = 250.0; // Pointy-top -> size from center to top
 pub const HEXAGONS_FROM_CENTER: f32 = 3.0;
+pub const RADIUS: i8 = HEXAGONS_FROM_CENTER as i8 + 1; // +1 for indicators
 const CHANCE_SHAPE_PAIR: f64 = 0.6;
 
 pub struct GamePlugin;
@@ -39,16 +40,14 @@ pub struct Game {
 
 impl Game {
     pub fn new(seed: String) -> Self {
-        let radius = HEXAGONS_FROM_CENTER as i8 + 1; // +1 for indicators
         let mut cells = HashMap::new();
         let mut number_coords = Vec::new();
 
-        for q in -radius..=radius {
-            let r_min = (-radius).max(-q - radius);
-            let r_max = radius.min(-q + radius);
+        for q in -RADIUS..=RADIUS {
+            let r_min = (-RADIUS).max(-q - RADIUS);
+            let r_max = RADIUS.min(-q + RADIUS);
             for r in r_min..=r_max {
-                let s = -q - r;
-                if q.abs() == 4 || r.abs() == 4 || s.abs() == 4 {
+                if q.abs().max(r.abs()).max((-q -r).abs()) >= RADIUS {
                     number_coords.push((q, r));
                 } else {
                     cells.insert(HexCoordinates { q, r }, CellState::Empty);

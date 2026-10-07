@@ -1,6 +1,8 @@
+use std::collections::{HashSet, VecDeque};
+use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
 use strum_macros::{EnumCount, EnumIter};
-use crate::game::{Game, GridComponent};
+use crate::game::{CellState, Game, GridComponent};
 use crate::hexagon::{HexCoordinates, HEXAGON_SIZE, hexagon_mesh, pointy_hex_to_pixel};
 use crate::shapes::ShapeType::*;
 use super::{GameState};
@@ -128,5 +130,41 @@ fn draw_shapes(
             _ => size * 3.25
         };
     }
+}
+
+pub fn check_if_valid_shapes(cells: HashMap<HexCoordinates, CellState>, shape_indicator: ShapeIndicator, second_shape: Option<ShapeType>) -> bool {
+    let color_target = CellState::Filled(shape_indicator.color);
+    let mut visited: HashSet<HexCoordinates> = HashSet::new();
+    let mut clusters: Vec<Vec<HexCoordinates>> = Vec::new();
+
+    for (&hex, state) in &cells {
+        if *state != color_target || !visited.insert(hex) {
+            continue;
+        }
+
+        let mut cluster = vec![hex];
+        let mut queue = VecDeque::from([hex]);
+
+        while let Some(new_hex) = queue.pop_front() {
+            for neighbour in new_hex.get_neighbours() {
+                if cells.get(&neighbour) == Some(&color_target) && visited.insert(neighbour) {
+                    cluster.push(neighbour);
+                    queue.push_back(neighbour);
+                }
+            }
+        }
+        clusters.push(cluster);
+    }
+
+    let shape_type = shape_indicator.shape_type;
+    let mut valid_shapes = true;
+    for cluster in clusters {
+        if cluster.len() < shape_type.shape_size() {
+            valid_shapes = false;
+        }
+
+    }
+
+    valid_shapes
 }
 
