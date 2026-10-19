@@ -135,7 +135,7 @@ fn draw_shapes(
 pub fn check_if_valid_shapes(cells: HashMap<HexCoordinates, CellState>, shape_indicator: ShapeIndicator, second_shape: Option<ShapeType>) -> bool {
     let color_target = CellState::Filled(shape_indicator.color);
     let mut visited: HashSet<HexCoordinates> = HashSet::new();
-    let mut clusters: Vec<Vec<HexCoordinates>> = Vec::new();
+    let mut clusters: VecDeque<Vec<HexCoordinates>> = VecDeque::new();
 
     for (&hex, state) in &cells {
         if *state != color_target || !visited.insert(hex) {
@@ -153,18 +153,19 @@ pub fn check_if_valid_shapes(cells: HashMap<HexCoordinates, CellState>, shape_in
                 }
             }
         }
-        clusters.push(cluster);
+        clusters.push_back(cluster);
     }
 
     let shape_type = shape_indicator.shape_type;
     let mut valid_shapes = true;
-    for cluster in clusters {
+    while valid_shapes && let Some(cluster) = clusters.pop_front() {
         if cluster.len() < shape_type.shape_size() {
             valid_shapes = false;
+            break;
         }
 
-    }
 
+    }
     valid_shapes
 }
 

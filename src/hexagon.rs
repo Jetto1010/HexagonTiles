@@ -44,12 +44,12 @@ pub fn hexagon_mesh(size: f32) -> Mesh {
     hex.insert_attribute(Mesh::ATTRIBUTE_POSITION, v_pos);
 
     // 0, 1, 6 is last triangle
-    let mut indicies = vec![0, 1, 6];
+    let mut indices = vec![0, 1, 6];
     for i in 2..7 {
-        indicies.extend_from_slice(&[0, i, i - 1]);
+        indices.extend_from_slice(&[0, i, i - 1]);
     }
     // Sets indices
-    hex.insert_indices(Indices::U16(indicies));
+    hex.insert_indices(Indices::U16(indices));
     hex
 }
 
